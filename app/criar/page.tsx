@@ -1,26 +1,89 @@
 'use client'
 
-import React, { useState, useRef, useCallback } from 'react'
+import React, { useState, useRef, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useFigurinhaStore, formatBirthDate, getPlayerNumber } from '@/lib/store'
-import { FigurinhaCard } from '@/components/FigurinhaCard'
+import { useFigurinhaStore, formatBirthDate } from '@/lib/store'
 
-/* ─── Brazilian clubs autocomplete list ─── */
-const TIMES_BR = [
-  'Flamengo','Palmeiras','Corinthians','São Paulo','Santos','Grêmio',
-  'Internacional','Atlético Mineiro','Fluminense','Vasco da Gama',
-  'Botafogo','Cruzeiro','Athletico Paranaense','Red Bull Bragantino',
-  'Fortaleza','Bahia','Ceará','Sport Recife','Vitória','Mirassol',
-  'Goiás','Juventude','América Mineiro','Avaí','Cuiabá','Chapecoense',
-  'Ponte Preta','Guarani','Coritiba','Náutico','Vila Nova','CRB','CSA',
-  'Paysandu','Remo','Manaus','Ferroviária','ABC','Figueirense',
-  // Seleção
-  'Seleção Brasileira',
-  // Internacionais populares
-  'Real Madrid','Barcelona','Manchester City','Liverpool','PSG',
-  'Benfica','Porto','Sporting CP','Ajax','Juventus','Milan',
+const CLUBES = [
+  'Flamengo','Palmeiras','Corinthians','São Paulo',
+  'Grêmio','Fluminense','Internacional','Santos',
 ]
+
+/* ─── Dropdown de clube customizado ─── */
+function ClubSelect({ value, onChange, error }: { value: string; onChange: (v: string) => void; error?: string }) {
+  const [open, setOpen] = useState(false)
+  const [query, setQuery] = useState(value)
+  const ref = useRef<HTMLDivElement>(null)
+
+  const filtered = query.trim()
+    ? CLUBES.filter((c) => c.toLowerCase().includes(query.toLowerCase()))
+    : CLUBES
+
+  useEffect(() => {
+    function outside(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', outside)
+    return () => document.removeEventListener('mousedown', outside)
+  }, [])
+
+  const select = (club: string) => {
+    setQuery(club)
+    onChange(club)
+    setOpen(false)
+  }
+
+  return (
+    <div ref={ref} style={{ position: 'relative' }}>
+      <input
+        className={`copa-input ${error ? 'error' : ''}`}
+        type="text"
+        placeholder="Digite o nome do clube..."
+        value={query}
+        onChange={(e) => { setQuery(e.target.value); onChange(e.target.value); if (!open) setOpen(true) }}
+        onFocus={() => setOpen(true)}
+        autoComplete="off"
+        autoCorrect="off"
+      />
+      <AnimatePresence>
+        {open && filtered.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.15 }}
+            style={{
+              position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0,
+              background: '#fff', borderRadius: 16,
+              border: '2px solid rgba(13,27,75,0.13)',
+              boxShadow: '0 12px 40px rgba(0,0,0,0.13)',
+              zIndex: 200, overflow: 'hidden',
+            }}
+          >
+            {filtered.map((club, i) => (
+              <button
+                key={club}
+                onMouseDown={(e) => { e.preventDefault(); select(club) }}
+                style={{
+                  display: 'block', width: '100%', textAlign: 'left',
+                  padding: '13px 18px',
+                  background: club === value ? 'rgba(13,27,75,0.06)' : 'transparent',
+                  border: 'none',
+                  borderBottom: i < filtered.length - 1 ? '1px solid rgba(13,27,75,0.07)' : 'none',
+                  fontFamily: 'var(--font-barlow)', fontSize: 15, fontWeight: 600,
+                  color: '#0D1B4B', cursor: 'pointer',
+                }}
+              >
+                {club}
+              </button>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
 
 /* ─── Step transitions ─── */
 const variants = {
@@ -287,7 +350,6 @@ export default function CriarPage() {
   }
 
   const birthDate = formatBirthDate(birthDay, birthMonth, birthYear)
-  const playerNumber = getPlayerNumber(name)
 
   const MONTHS = [
     ['01','Janeiro'],['02','Fevereiro'],['03','Março'],['04','Abril'],
@@ -503,51 +565,19 @@ export default function CriarPage() {
                   </p>
                 </div>
 
-                {/* Club with autocomplete datalist */}
-                <div className="mb-4">
+                {/* Club dropdown customizado */}
+                <div className="mb-5">
                   <label style={{ fontFamily: 'var(--font-bebas)', fontSize: 15, letterSpacing: 1, color: '#0D1B4B', display: 'block', marginBottom: 6 }}>
                     CLUBE DO CORAÇÃO
                   </label>
-                  <input
-                    className={`copa-input ${errors.club ? 'error' : ''}`}
-                    type="text"
-                    list="times-list"
-                    placeholder="Digite ou escolha o clube..."
+                  <ClubSelect
                     value={club}
-                    onChange={(e) => { setClub(e.target.value); setErrors((p) => ({ ...p, club: '' })) }}
-                    maxLength={36}
-                    autoComplete="off"
+                    onChange={(v) => { setClub(v); setErrors((p) => ({ ...p, club: '' })) }}
+                    error={errors.club}
                   />
-                  <datalist id="times-list">
-                    {TIMES_BR.map((t) => <option key={t} value={t} />)}
-                  </datalist>
                   {errors.club && (
                     <p style={{ color: '#E53E3E', fontSize: 12.5, marginTop: 5, fontWeight: 600 }}>⚠ {errors.club}</p>
                   )}
-                </div>
-
-                {/* Quick-pick popular clubs */}
-                <div className="flex flex-wrap gap-2 mb-5">
-                  {['Flamengo','Palmeiras','Corinthians','São Paulo','Grêmio','Fluminense','Internacional','Santos'].map((t) => (
-                    <button
-                      key={t}
-                      onClick={() => { setClub(t); setErrors((p) => ({ ...p, club: '' })) }}
-                      style={{
-                        fontFamily: 'var(--font-barlow)',
-                        fontSize: 12,
-                        fontWeight: 700,
-                        padding: '5px 10px',
-                        borderRadius: 99,
-                        border: club === t ? '2px solid #0D1B4B' : '2px solid rgba(13,27,75,0.18)',
-                        background: club === t ? '#0D1B4B' : 'rgba(13,27,75,0.05)',
-                        color: club === t ? 'white' : '#0D1B4B',
-                        cursor: 'pointer',
-                        transition: 'all 0.15s',
-                      }}
-                    >
-                      {t}
-                    </button>
-                  ))}
                 </div>
 
                 <div className="grid grid-cols-2 gap-3 mb-6">
@@ -607,36 +637,49 @@ export default function CriarPage() {
                   </p>
                 </div>
 
-                {/* Preview card */}
-                <div className="flex justify-center mb-5">
-                  <FigurinhaCard
-                    name={name || 'SEU NOME'}
-                    photo={photo}
-                    birthDate={birthDate}
-                    height={height ? (parseFloat(height) / 100).toFixed(2).replace('.', ',') : ''}
-                    weight={weight}
-                    club={club}
-                    number={playerNumber}
-                    size="md"
-                  />
-                </div>
+                {/* Foto + nome do craque */}
+                {photo && (
+                  <div
+                    className="flex items-center gap-4 rounded-2xl mb-5"
+                    style={{ background: 'rgba(13,27,75,0.04)', border: '1.5px solid rgba(13,27,75,0.08)', padding: '14px 16px' }}
+                  >
+                    <div className="flex-shrink-0 rounded-xl overflow-hidden" style={{ width: 64, height: 64 }}>
+                      <img src={photo} alt="Foto" className="w-full h-full" style={{ objectFit: 'cover', objectPosition: 'top center' }} />
+                    </div>
+                    <div>
+                      <div style={{ fontFamily: 'var(--font-bebas)', fontSize: 22, color: '#0D1B4B', letterSpacing: 0.5, lineHeight: 1 }}>
+                        {name || '—'}
+                      </div>
+                      <div style={{ fontFamily: 'var(--font-barlow)', fontSize: 13, color: 'rgba(13,27,75,0.5)', fontWeight: 600, marginTop: 3 }}>
+                        {club || '—'}
+                      </div>
+                    </div>
+                  </div>
+                )}
 
-                {/* Data summary */}
+                {/* Dados resumo */}
                 <div
-                  className="flex flex-col gap-2.5 mb-5 rounded-2xl"
-                  style={{ background: 'rgba(13,27,75,0.04)', padding: '14px 16px', border: '1.5px solid rgba(13,27,75,0.07)' }}
+                  className="flex flex-col gap-0 mb-5 rounded-2xl overflow-hidden"
+                  style={{ border: '1.5px solid rgba(13,27,75,0.08)' }}
                 >
                   {[
-                    { label: 'NOME', value: name || '—' },
                     { label: 'NASCIMENTO', value: birthDate || '—' },
-                    { label: 'PESO', value: weight ? `${weight} kg` : '—' },
-                    { label: 'ALTURA', value: height ? `${height} cm` : '—' },
-                    { label: 'CLUBE', value: club || '—' },
-                    { label: 'E-MAIL', value: email || '—' },
-                  ].map(({ label, value }) => (
-                    <div key={label} className="flex items-center justify-between">
-                      <span style={{ fontFamily: 'var(--font-bebas)', fontSize: 13.5, letterSpacing: 1, color: 'rgba(13,27,75,0.45)' }}>{label}</span>
-                      <span style={{ fontFamily: 'var(--font-barlow)', fontSize: 13.5, fontWeight: 700, color: '#0D1B4B', maxWidth: '62%', textAlign: 'right', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value}</span>
+                    { label: 'PESO',       value: weight ? `${weight} kg` : '—' },
+                    { label: 'ALTURA',     value: height ? `${height} cm` : '—' },
+                    { label: 'CLUBE',      value: club || '—' },
+                    { label: 'E-MAIL',     value: email || '—' },
+                  ].map(({ label, value }, i, arr) => (
+                    <div
+                      key={label}
+                      className="flex items-center justify-between"
+                      style={{
+                        padding: '11px 16px',
+                        background: i % 2 === 0 ? 'rgba(13,27,75,0.03)' : 'transparent',
+                        borderBottom: i < arr.length - 1 ? '1px solid rgba(13,27,75,0.06)' : 'none',
+                      }}
+                    >
+                      <span style={{ fontFamily: 'var(--font-bebas)', fontSize: 13, letterSpacing: 1, color: 'rgba(13,27,75,0.4)' }}>{label}</span>
+                      <span style={{ fontFamily: 'var(--font-barlow)', fontSize: 13.5, fontWeight: 700, color: '#0D1B4B', maxWidth: '60%', textAlign: 'right', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value}</span>
                     </div>
                   ))}
                 </div>
