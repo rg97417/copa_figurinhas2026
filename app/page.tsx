@@ -6,9 +6,9 @@ import { FigurinhaCard } from '@/components/FigurinhaCard'
 import { Testimonials } from '@/components/Testimonials'
 
 const DEMO_CARDS = [
-  { name: 'MIGUEL S.',  number: 7,  club: 'Flamengo',   height: '1.32', weight: '28', birthDate: '14/03/2017', tilt: 'left'  as const },
-  { name: 'HELENA M.',  number: 10, club: 'Palmeiras',   height: '1.18', weight: '21', birthDate: '07/08/2019', tilt: 'none'  as const },
-  { name: 'ARTHUR L.',  number: 9,  club: 'Corinthians', height: '1.45', weight: '38', birthDate: '22/11/2015', tilt: 'right' as const },
+  { name: 'MIGUEL S.',  number: 7,  club: 'Flamengo',   height: '1,32', weight: '28', birthDate: '14/03/2017', tilt: 'left'  as const },
+  { name: 'HELENA M.',  number: 10, club: 'Palmeiras',   height: '1,18', weight: '21', birthDate: '07/08/2019', tilt: 'none'  as const },
+  { name: 'ARTHUR L.',  number: 9,  club: 'Corinthians', height: '1,45', weight: '38', birthDate: '22/11/2015', tilt: 'right' as const },
 ]
 
 const HOW_IT_WORKS = [
@@ -303,12 +303,12 @@ export default function LandingPage() {
             style={{ gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}
           >
             {[
-              { name: 'DAVI M.',    number: 11, club: 'Flamengo',   height: '1.28', weight: '24', birthDate: '03/05/2018' },
-              { name: 'VALENTINA', number: 3,  club: 'Santos',     height: '1.15', weight: '19', birthDate: '17/09/2020' },
-              { name: 'GABRIEL L.',number: 6,  club: 'Grêmio',     height: '1.52', weight: '42', birthDate: '08/01/2014' },
-              { name: 'ISABELLA',  number: 8,  club: 'Atlético MG',height: '1.22', weight: '22', birthDate: '29/11/2019' },
-              { name: 'LUCAS P.',  number: 14, club: 'São Paulo',  height: '1.38', weight: '31', birthDate: '14/06/2016' },
-              { name: 'SOPHIA R.', number: 5,  club: 'Internacional',height:'1.10',weight: '17', birthDate: '21/02/2021' },
+              { name: 'DAVI M.',    number: 11, club: 'Flamengo',   height: '1,28', weight: '24', birthDate: '03/05/2018' },
+              { name: 'VALENTINA', number: 3,  club: 'Santos',     height: '1,15', weight: '19', birthDate: '17/09/2020' },
+              { name: 'GABRIEL L.',number: 6,  club: 'Grêmio',     height: '1,52', weight: '42', birthDate: '08/01/2014' },
+              { name: 'ISABELLA',  number: 8,  club: 'Atlético MG',height: '1,22', weight: '22', birthDate: '29/11/2019' },
+              { name: 'LUCAS P.',  number: 14, club: 'São Paulo',  height: '1,38', weight: '31', birthDate: '14/06/2016' },
+              { name: 'SOPHIA R.', number: 5,  club: 'Internacional',height:'1,10',weight: '17', birthDate: '21/02/2021' },
             ].map((card, i) => (
               <div
                 key={i}

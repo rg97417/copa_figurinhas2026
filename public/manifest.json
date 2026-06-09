@@ -1,0 +1,36 @@
+{
+  "name": "Figurinha Copa 2026",
+  "short_name": "Figurinha Copa",
+  "description": "Transforme seu filho em uma figurinha personalizada da Copa do Mundo 2026",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FFD500",
+  "theme_color": "#FFD500",
+  "lang": "pt-BR",
+  "categories": ["entertainment", "sports"],
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Criar Figurinha",
+      "short_name": "Criar",
+      "url": "/criar",
+      "description": "Comece a criar sua figurinha personalizada"
+    }
+  ]
+}

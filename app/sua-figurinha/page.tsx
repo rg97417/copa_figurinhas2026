@@ -190,7 +190,7 @@ export default function SuaFigurinhaPage() {
                     name={store.name}
                     photo={store.photo}
                     birthDate={birthDate}
-                    height={store.height}
+                    height={store.height ? (parseFloat(store.height) / 100).toFixed(2).replace('.', ',') : ''}
                     weight={store.weight}
                     club={store.club}
                     number={playerNumber}
