@@ -85,10 +85,12 @@ export default function GerandoPage() {
     async function run() {
       try {
         const birthDate = formatBirthDate(store.birthDay, store.birthMonth, store.birthYear)
-        const heightM   = store.height
-          ? (parseFloat(store.height) / 100).toFixed(2).replace('.', ',') + ' m'
-          : ''
-        const weightKg  = store.weight ? store.weight + ' kg' : ''
+        // Se usuário digitou em metros (ex: 1,30 ou 1.30), converte direto
+        // Se digitou em cm (ex: 130), divide por 100
+        const rawH = parseFloat(store.height.replace(',', '.'))
+        const meters = rawH > 0 ? (rawH <= 3 ? rawH : rawH / 100) : 0
+        const heightM = meters > 0 ? meters.toFixed(2).replace('.', ',') + ' m' : ''
+        const weightKg = store.weight ? store.weight + ' kg' : ''
 
         // Converte base64 data URL → Blob
         const dataUrl   = store.photo!

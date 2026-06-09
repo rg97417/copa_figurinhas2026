@@ -18,7 +18,7 @@ function ClubSelect({ value, onChange, error }: { value: string; onChange: (v: s
 
   const filtered = query.trim()
     ? CLUBES.filter((c) => c.toLowerCase().includes(query.toLowerCase()))
-    : CLUBES
+    : CLUBES.slice(0, 3)
 
   useEffect(() => {
     function outside(e: MouseEvent) {
