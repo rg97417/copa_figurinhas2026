@@ -139,6 +139,7 @@ export default function GerandoPage() {
           body: JSON.stringify({
             rembgUrl,
             nome:   store.name.toUpperCase(),
+            email:  store.email,
             data:   birthDate,
             altura: heightM,
             peso:   weightKg,
@@ -147,9 +148,11 @@ export default function GerandoPage() {
         })
         if (!finishRes.ok) throw new Error((await finishRes.json()).error)
 
+        const jobId   = finishRes.headers.get('X-Job-Id') ?? ''
         const imgBlob = await finishRes.blob()
         const url     = URL.createObjectURL(imgBlob)
         store.setStickerUrl(url)
+        store.setJobId(jobId)
 
         setStage('done')
         setProgress(100)

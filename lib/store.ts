@@ -14,6 +14,7 @@ export interface FigurinhaData {
   weight: string
   height: string
   stickerUrl: string | null
+  jobId: string | null
 }
 
 interface FigurinhaStore extends FigurinhaData {
@@ -27,6 +28,7 @@ interface FigurinhaStore extends FigurinhaData {
   setWeight: (v: string) => void
   setHeight: (v: string) => void
   setStickerUrl: (v: string | null) => void
+  setJobId: (v: string | null) => void
   setAll: (data: FigurinhaData) => void
   reset: () => void
 }
@@ -42,6 +44,7 @@ const initial: FigurinhaData = {
   weight: '',
   height: '',
   stickerUrl: null,
+  jobId: null,
 }
 
 export const useFigurinhaStore = create<FigurinhaStore>()(
@@ -58,6 +61,7 @@ export const useFigurinhaStore = create<FigurinhaStore>()(
       setWeight: (weight) => set({ weight }),
       setHeight: (height) => set({ height }),
       setStickerUrl: (stickerUrl) => set({ stickerUrl }),
+      setJobId: (jobId) => set({ jobId }),
       setAll: (data) => set(data),
       reset: () => set(initial),
     }),
