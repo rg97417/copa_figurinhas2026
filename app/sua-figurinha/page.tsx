@@ -186,17 +186,25 @@ export default function SuaFigurinhaPage() {
               {/* ── Sticker preview with watermark ── */}
               <div className="flex justify-center mb-3">
                 <div className="relative" style={{ filter: 'drop-shadow(0 24px 60px rgba(0,0,0,0.35))' }}>
-                  <FigurinhaCard
-                    name={store.name}
-                    photo={store.photo}
-                    birthDate={birthDate}
-                    height={store.height ? (parseFloat(store.height) / 100).toFixed(2).replace('.', ',') : ''}
-                    weight={store.weight}
-                    club={store.club}
-                    number={playerNumber}
-                    showWatermark
-                    size="lg"
-                  />
+                  {store.stickerUrl ? (
+                    <img
+                      src={store.stickerUrl}
+                      alt="Sua figurinha"
+                      style={{ width: '100%', maxWidth: 320, borderRadius: 16, display: 'block' }}
+                    />
+                  ) : (
+                    <FigurinhaCard
+                      name={store.name}
+                      photo={store.photo}
+                      birthDate={birthDate}
+                      height={store.height ? (parseFloat(store.height) / 100).toFixed(2).replace('.', ',') : ''}
+                      weight={store.weight}
+                      club={store.club}
+                      number={playerNumber}
+                      showWatermark
+                      size="lg"
+                    />
+                  )}
                 </div>
               </div>
 

@@ -282,7 +282,7 @@ export default function CriarPage() {
   }
 
   const handleConfirm = () => {
-    store.setAll({ name: name.trim(), photo, birthDay, birthMonth, birthYear, email: email.trim(), club: club.trim(), weight, height })
+    store.setAll({ name: name.trim(), photo, birthDay, birthMonth, birthYear, email: email.trim(), club: club.trim(), weight, height, stickerUrl: null })
     router.push('/gerando')
   }
 
