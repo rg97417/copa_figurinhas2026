@@ -1,31 +1,68 @@
 import { NextRequest, NextResponse } from 'next/server'
+import sharp from 'sharp'
+import * as path from 'path'
+import * as fs from 'fs'
 
 const FLUX_VERSION = '897a70f5a7dbd8a0611413b3b98cf417b45f266bd595c571a22947619d9ae462'
 
-const JERSEY_PROMPT = `Replace the clothing in this photo with the exact Brazil national football team 2023-2024 home jersey worn by Neymar in official CBF squad photos. This is the Nike Brazil home kit with the following precise details:
+const JERSEY_PROMPT = `This image shows two panels side by side separated by a thin white border.
+LEFT PANEL: A reference photo showing the exact Brazil national football team jersey.
+RIGHT PANEL: The person to edit.
 
-JERSEY BODY: Golden-yellow performance polyester fabric, hex color #D7BC1F (RGB 215,188,31). Very subtle vertical micro-grain texture with low sheen. No patterns, no stripes — just the fine vertical fabric grain.
+Your task: Edit the person in the RIGHT PANEL to wear the exact same Brazil jersey visible in the LEFT PANEL.
 
-COLLAR: Deep V-neck collar in two-tone green — outer edge #119C4A, inner edge #0D7E3B — double-layer construction. The V opens wide and deep. Same green color #119C4A on both sleeve cuffs.
+Copy EXACTLY from the LEFT panel jersey:
+- Yellow-gold fabric color and texture
+- Deep green V-neck collar (double layer, same green on sleeve cuffs)
+- Nike swoosh on upper-left chest (green, large)
+- CBF crest on center chest: 5 stars above a blue shield, cross pattern inside, CBF text, BRASIL text below
+- All proportions and placement of logos
 
-NIKE SWOOSH: Upper-left area of chest (from viewer's perspective). Solid flat green #119C4A. The swoosh is tilted approximately -12 degrees. Proportionally large — about 12% of chest width. This is a standard Nike swoosh shape.
+Preserve EXACTLY from the RIGHT panel:
+- The person's face, skin tone, eyes, hair — 100% identical
+- Body proportions and size (keep child proportions if the person is a child, keep adult proportions if adult)
+- Age appearance
 
-CBF CREST (center of chest, below swoosh): This must be reproduced accurately.
-- 5 small five-pointed stars in a single horizontal row above the main shield, in dark green #119C4A
-- Main shield: rounded rectangular shield shape, dominant blue #0058A8
-- Inside the shield: a white southern cross / diamond lozenge pattern with green #119C4A lines forming an X or cross
-- Small text "CBF" in white centered inside the shield
-- Below the shield: text "BRASIL" in bold uppercase, dark green #119C4A
+Result for the RIGHT panel:
+- Person wearing the Brazil jersey
+- Clean white studio background
+- Upright frontal pose, head straight, arms relaxed at sides
+- Photorealistic 4K quality, professional sports portrait`
 
-POSE: Person faces directly at the camera, body centered and upright, head straight, arms relaxed at sides — standard official CBF squad photo pose. Preserve exact age, body size, and proportions (keep child proportions if the person is a child).
+async function buildComposite(
+  personBuffer: Buffer,
+): Promise<{ composite: Buffer; personX: number; totalW: number; totalH: number }> {
+  const refPath = path.join(process.cwd(), 'public/assets/jersey_ref.jpg')
+  const refBuffer = fs.readFileSync(refPath)
 
-FACE: Preserve the person's face, skin tone, eyes, hair, and all facial features 100% identically. Do not alter the face.
+  const personMeta = await sharp(personBuffer).metadata()
+  const personW = personMeta.width!
+  const personH = personMeta.height!
 
-BACKGROUND: Clean white background, bright even studio lighting, identical to official CBF national team portrait photos.
+  const refMeta = await sharp(refBuffer).metadata()
+  const refW = Math.round(refMeta.width! * (personH / refMeta.height!))
 
-FRAMING: Head and upper body to mid-chest, portrait orientation, Panini football sticker style.
+  const refResized = await sharp(refBuffer)
+    .resize(refW, personH)
+    .jpeg({ quality: 95 })
+    .toBuffer()
 
-QUALITY: Photorealistic 4K, sharp focus, professional sports photography, hyperrealistic fabric and skin texture, DSLR quality.`
+  const SEP = 8
+  const totalW = refW + SEP + personW
+  const personX = refW + SEP
+
+  const composite = await sharp({
+    create: { width: totalW, height: personH, channels: 3, background: { r: 255, g: 255, b: 255 } },
+  })
+    .composite([
+      { input: refResized, left: 0, top: 0 },
+      { input: personBuffer, left: personX, top: 0 },
+    ])
+    .jpeg({ quality: 95 })
+    .toBuffer()
+
+  return { composite, personX, totalW, totalH: personH }
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -33,8 +70,10 @@ export async function POST(req: NextRequest) {
     const photo = formData.get('photo') as File | null
     if (!photo) return NextResponse.json({ error: 'Foto obrigatória' }, { status: 400 })
 
-    const photoBase64 = Buffer.from(await photo.arrayBuffer()).toString('base64')
-    const mimeType = photo.type || 'image/jpeg'
+    const personBuffer = Buffer.from(await photo.arrayBuffer())
+    const { composite, personX, totalW } = await buildComposite(personBuffer)
+
+    const compositeBase64 = composite.toString('base64')
 
     const res = await fetch('https://api.replicate.com/v1/predictions', {
       method: 'POST',
@@ -45,7 +84,7 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify({
         version: FLUX_VERSION,
         input: {
-          input_image: `data:${mimeType};base64,${photoBase64}`,
+          input_image: `data:image/jpeg;base64,${compositeBase64}`,
           prompt: JERSEY_PROMPT,
           aspect_ratio: 'match_input_image',
           output_format: 'png',
@@ -58,7 +97,7 @@ export async function POST(req: NextRequest) {
 
     if (!res.ok) throw new Error(`Replicate ${res.status}: ${await res.text()}`)
     const prediction = await res.json()
-    return NextResponse.json({ predictionId: prediction.id })
+    return NextResponse.json({ predictionId: prediction.id, personX, totalW })
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Erro interno'
     return NextResponse.json({ error: msg }, { status: 500 })

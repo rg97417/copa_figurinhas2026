@@ -113,7 +113,7 @@ export default function GerandoPage() {
         fd.append('photo', blob, 'photo.jpg')
         const startRes = await fetch('/api/gerar/start', { method: 'POST', body: fd })
         if (!startRes.ok) throw new Error((await startRes.json()).error)
-        const { predictionId: fluxId } = await startRes.json()
+        const { predictionId: fluxId, personX, totalW } = await startRes.json()
 
         // 2. Polling FLUX
         setStage('flux_poll')
@@ -121,12 +121,12 @@ export default function GerandoPage() {
           setProgress((p) => Math.min(p + 0.5, 52))
         })
 
-        // 3. Inicia rembg
+        // 3. Inicia rembg (com crop do painel da pessoa se for colagem)
         setStage('rembg_start')
         const rembgRes = await fetch('/api/gerar/rembg', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ imageUrl: jerseyUrl }),
+          body: JSON.stringify({ imageUrl: jerseyUrl, personX, totalW }),
         })
         if (!rembgRes.ok) throw new Error((await rembgRes.json()).error)
         const { predictionId: rembgId } = await rembgRes.json()
