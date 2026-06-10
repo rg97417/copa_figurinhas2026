@@ -113,7 +113,8 @@ export async function compositeSticker(personPng: Buffer, data: UserData): Promi
   const p1cw = PILL1_X2 - PILL_X1 - 48
 
   const nomeUpper     = data.nome.toUpperCase()
-  const dataFormatada = data.data.replace(/\//g, '-')
+  const [dd, mm, yy]  = data.data.split('/')
+  const dataFormatada = `${parseInt(dd)}-${parseInt(mm)}-${yy}`
   const statsText     = `${dataFormatada} | ${data.altura} | ${data.peso}`
 
   const NAME_TARGET = Math.round(p1h * 0.33 / 0.72)
