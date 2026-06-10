@@ -18,7 +18,9 @@ FACE & IDENTITY: Keep the person's face, skin tone, eyes, hair, expression, and 
 
 BACKGROUND: Neutral dark studio background, professional sports photography lighting.
 
-FRAMING: Portrait from head to mid-chest, Panini football sticker card style.`
+FRAMING: Portrait from head to mid-chest, Panini football sticker card style.
+
+QUALITY: Ultra-high resolution, 4K photorealistic, hyperrealistic skin and fabric detail, sharp focus, professional DSLR quality, RAW photo look, ultra-detailed textures.`
 
 export async function POST(req: NextRequest) {
   try {
@@ -41,9 +43,10 @@ export async function POST(req: NextRequest) {
           input_image: `data:${mimeType};base64,${photoBase64}`,
           prompt: JERSEY_PROMPT,
           aspect_ratio: 'match_input_image',
-          output_format: 'jpg',
+          output_format: 'png',
+          output_quality: 100,
           safety_tolerance: 3,
-          prompt_upsampling: false,
+          prompt_upsampling: true,
         },
       }),
     })
