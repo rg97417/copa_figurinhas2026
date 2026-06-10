@@ -2,29 +2,30 @@ import { NextRequest, NextResponse } from 'next/server'
 
 const FLUX_VERSION = '897a70f5a7dbd8a0611413b3b98cf417b45f266bd595c571a22947619d9ae462'
 
-const JERSEY_PROMPT = `Transform this photo into an official Brazil national football team Panini sticker card portrait.
+const JERSEY_PROMPT = `Replace the clothing in this photo with the exact Brazil national football team 2023-2024 home jersey worn by Neymar in official CBF squad photos. This is the Nike Brazil home kit with the following precise details:
 
-POSE: Person faces directly at the camera, body centered and upright, head straight forward, arms relaxed along the sides — standard official squad photo pose. Preserve the person's age, body size, and proportions exactly as they are (if a child, keep child body proportions).
+JERSEY BODY: Golden-yellow performance polyester fabric, hex color #D7BC1F (RGB 215,188,31). Very subtle vertical micro-grain texture with low sheen. No patterns, no stripes — just the fine vertical fabric grain.
 
-JERSEY — Brazil CBF 2026 official home kit, exact replica of the real jersey:
-- Body: muted golden-yellow fabric (#D4A832) with subtle fine vertical ribbed texture running top to bottom
-- Collar: V-neck in vivid green (#1B8A4A), relatively wide V opening, same green on sleeve cuffs
-- Nike swoosh: positioned on the upper-LEFT area of the chest (viewer's left = wearer's right), solid dark green (#1B8A4A), large and clearly visible, roughly 11cm wide on a real jersey
-- CBF badge centered on chest, slightly below the Nike swoosh level — this badge must be accurate:
-  * Five small five-pointed stars in a horizontal row, colored DARK GREEN (#1B5E20), positioned directly above the shield
-  * Blue oval/shield shape (#0047AB) as the main badge body
-  * Inside the shield: a green and yellow diamond/lozenge cross shape
-  * Text "CBF" in white inside the shield
-  * Text "BRASIL" in dark green (#1B5E20) below the badge, in a bold sans-serif font
-- No other logos or text on the jersey
+COLLAR: Deep V-neck collar in two-tone green — outer edge #119C4A, inner edge #0D7E3B — double-layer construction. The V opens wide and deep. Same green color #119C4A on both sleeve cuffs.
 
-FACE & IDENTITY: Keep the person's face, skin tone, eyes, hair, expression, and ALL facial features completely identical. Do not change the face in any way.
+NIKE SWOOSH: Upper-left area of chest (from viewer's perspective). Solid flat green #119C4A. The swoosh is tilted approximately -12 degrees. Proportionally large — about 12% of chest width. This is a standard Nike swoosh shape.
 
-BACKGROUND: Clean white or very light neutral background, professional sports photography lighting, similar to an official CBF squad photo.
+CBF CREST (center of chest, below swoosh): This must be reproduced accurately.
+- 5 small five-pointed stars in a single horizontal row above the main shield, in dark green #119C4A
+- Main shield: rounded rectangular shield shape, dominant blue #0058A8
+- Inside the shield: a white southern cross / diamond lozenge pattern with green #119C4A lines forming an X or cross
+- Small text "CBF" in white centered inside the shield
+- Below the shield: text "BRASIL" in bold uppercase, dark green #119C4A
 
-FRAMING: Portrait from head to mid-chest, Panini football sticker card style.
+POSE: Person faces directly at the camera, body centered and upright, head straight, arms relaxed at sides — standard official CBF squad photo pose. Preserve exact age, body size, and proportions (keep child proportions if the person is a child).
 
-QUALITY: Ultra-high resolution, 4K photorealistic, hyperrealistic skin and fabric detail, sharp focus, professional DSLR quality, RAW photo look, ultra-detailed textures.`
+FACE: Preserve the person's face, skin tone, eyes, hair, and all facial features 100% identically. Do not alter the face.
+
+BACKGROUND: Clean white background, bright even studio lighting, identical to official CBF national team portrait photos.
+
+FRAMING: Head and upper body to mid-chest, portrait orientation, Panini football sticker style.
+
+QUALITY: Photorealistic 4K, sharp focus, professional sports photography, hyperrealistic fabric and skin texture, DSLR quality.`
 
 export async function POST(req: NextRequest) {
   try {
