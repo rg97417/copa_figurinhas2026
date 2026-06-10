@@ -14,8 +14,8 @@ type Stage =
   | 'error'
 
 const STAGE_MSG: Record<Stage, string> = {
-  face_start:  '⚡ Processando a foto do craque...',
-  face_poll:   '🎽 Colocando na camiseta da Seleção Brasileira...',
+  face_start:  '🤖 IA gerando a camiseta da Seleção...',
+  face_poll:   '🎽 Finalizando o visual da figurinha...',
   rembg_start: '✂️ Iniciando remoção do fundo...',
   rembg_poll:  '✂️ Removendo o fundo da foto...',
   finishing:   '🏆 Aplicando design Panini Copa 2026...',
@@ -25,10 +25,10 @@ const STAGE_MSG: Record<Stage, string> = {
 
 const STAGE_PCT: Record<Stage, number> = {
   face_start:  5,
-  face_poll:   10,
-  rembg_start: 65,
-  rembg_poll:  70,
-  finishing:   91,
+  face_poll:   50,
+  rembg_start: 68,
+  rembg_poll:  75,
+  finishing:   92,
   done:        100,
   error:       0,
 }
@@ -212,7 +212,7 @@ export default function GerandoPage() {
             GERANDO SUA FIGURINHA
           </div>
           <p style={{ fontFamily: 'var(--font-barlow)', fontSize: 14, color: 'rgba(255,255,255,0.5)', fontWeight: 500, marginTop: 6 }}>
-            Não saia dessa tela — pode levar até 2 minutos ⏱
+            Não saia dessa tela — pode levar até 1 minuto ⏱
           </p>
         </div>
 

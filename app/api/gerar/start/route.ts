@@ -1,9 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
-import * as fs from 'fs'
-import * as path from 'path'
+import OpenAI from 'openai'
+import { toFile } from 'openai'
 
-// lucataco/faceswap — troca só o rosto, preserva corpo + camiseta da referência
-const FACESWAP_VERSION = '25bdae46f2713138640b6e8c04dc4ca18625ce95b1863936b053eee42d9ba6db'
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! })
+
+// Prompt focado em colocar a camiseta da Seleção Brasileira de forma limpa
+const JERSEY_PROMPT = [
+  'The person in the photo is wearing the official Brazil national soccer team jersey.',
+  'The jersey is bright yellow with a V-shaped green collar.',
+  'The official CBF (Confederação Brasileira de Futebol) badge is on the left chest.',
+  'A small Nike logo is on the right chest.',
+  'The word BRASIL appears at the bottom of the jersey.',
+  'Four stars are above the CBF badge.',
+  'Keep the face, skin tone, and hair exactly as in the original photo.',
+  'The person should be facing forward with a confident pose, upper body visible.',
+  'Clean, white or neutral studio background.',
+  'Photorealistic, high quality.',
+].join(' ')
 
 export async function POST(req: NextRequest) {
   try {
@@ -11,36 +24,27 @@ export async function POST(req: NextRequest) {
     const photo = formData.get('photo') as File | null
     if (!photo) return NextResponse.json({ error: 'Foto obrigatória' }, { status: 400 })
 
-    const photoBase64 = Buffer.from(await photo.arrayBuffer()).toString('base64')
-    const mimeType = photo.type || 'image/jpeg'
+    const photoBuffer = Buffer.from(await photo.arrayBuffer())
+    const mimeType = (photo.type || 'image/jpeg') as 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif'
 
-    // Target fixo: camiseta_exemplo.png — pose frontal padrão + jersey oficial com Nike, CBF badge e BRASIL
-    const targetPath = path.join(process.cwd(), 'public/assets/camiseta_exemplo.png')
-    const targetBase64 = fs.readFileSync(targetPath).toString('base64')
+    // Converte para File object que o OpenAI SDK aceita
+    const imageFile = await toFile(photoBuffer, 'photo.png', { type: mimeType })
 
-    const res = await fetch('https://api.replicate.com/v1/predictions', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${process.env.REPLICATE_API_KEY!}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        version: FACESWAP_VERSION,
-        input: {
-          source_img:          `data:${mimeType};base64,${photoBase64}`,
-          target_img:          `data:image/png;base64,${targetBase64}`,
-          face_restore:        true,
-          face_upsample:       true,
-          background_enhance:  false,
-          upscale:             1,
-          codeformer_fidelity: 0.8,
-        },
-      }),
+    const response = await openai.images.edit({
+      model: 'gpt-image-1',
+      image: imageFile,
+      prompt: JERSEY_PROMPT,
+      n: 1,
+      size: '1024x1024',
     })
 
-    if (!res.ok) throw new Error(`Replicate ${res.status}: ${await res.text()}`)
-    const prediction = await res.json()
-    return NextResponse.json({ predictionId: prediction.id })
+    // gpt-image-1 retorna base64 diretamente
+    const b64 = response.data?.[0]?.b64_json
+    if (!b64) throw new Error('OpenAI não retornou imagem')
+
+    // Encodamos o base64 em base64url para usar como mock ID no poll
+    const mockId = `mock_openai_${Buffer.from(b64).toString('base64url')}`
+    return NextResponse.json({ predictionId: mockId })
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Erro interno'
     return NextResponse.json({ error: msg }, { status: 500 })
