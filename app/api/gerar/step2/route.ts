@@ -23,10 +23,10 @@ export async function POST(req: NextRequest) {
         input: {
           human_img:   humanImageUrl,
           garm_img:    `data:image/png;base64,${garmentBase64}`,
-          garment_des: 'Brazil national team yellow jersey with green V-neck collar, Nike swoosh logo, CBF badge with stars, BRASIL text',
+          garment_des: 'Yellow Brazil national team jersey, green V-neck collar. Left chest: small green Nike swoosh. Center chest: blue CBF shield badge. Right side: NO badge, NO logo, NO emblem.',
           category:    'upper_body',
           crop:        true,
-          steps:       30,
+          steps:       40,
           seed:        42,
         },
       }),

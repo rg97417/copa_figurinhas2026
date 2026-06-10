@@ -113,9 +113,18 @@ export async function compositeSticker(personPng: Buffer, data: UserData): Promi
     .png()
     .toBuffer()
 
-  // ── 3. Overlay do badge CBF (apenas quando não usar IDM-VTON try-on)
-  // IDM-VTON já transfere o badge real da camiseta de referência
-  const withBadge = composited
+  // ── 3. Overlay do badge CBF — usa arquivo oficial, ignora badge gerado pela IA
+  const badgePos = await detectBadgePosition(fotoResized)
+  const badgePng = fs.readFileSync(path.join(ASSETS, 'cbf_badge_clean.png'))
+  const BADGE_W = 130, BADGE_H = 214
+  const withBadge = await sharp(composited)
+    .composite([{
+      input: badgePng,
+      left: Math.max(0, Math.min(W - BADGE_W, Math.round(badgePos.cx - BADGE_W / 2))),
+      top:  Math.max(0, Math.min(H - BADGE_H, Math.round(badgePos.cy - BADGE_H / 2))),
+    }])
+    .png()
+    .toBuffer()
 
   // ── 4. Canvas: pills + texto + watermark ─────────────────────────────────
   const canvas = createCanvas(W, H)
