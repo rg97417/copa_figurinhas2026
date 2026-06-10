@@ -2,30 +2,21 @@ import { NextRequest, NextResponse } from 'next/server'
 
 const FLUX_VERSION = '897a70f5a7dbd8a0611413b3b98cf417b45f266bd595c571a22947619d9ae462'
 
-const JERSEY_PROMPT = `Replace the clothing in this photo with the exact Brazil national football team 2023-2024 home jersey worn by Neymar in official CBF squad photos. This is the Nike Brazil home kit with the following precise details:
+const JERSEY_PROMPT = `Edit this photo: change ONLY the clothing to the Nike Brazil 2024 home football jersey. Change nothing else.
 
-JERSEY BODY: Golden-yellow performance polyester fabric, hex color #D7BC1F (RGB 215,188,31). Very subtle vertical micro-grain texture with low sheen. No patterns, no stripes — just the fine vertical fabric grain.
+JERSEY: Golden-yellow performance polyester (#D7BC1F). Very subtle fine vertical ribbed texture. Deep V-neck collar in green (#119C4A), double-layer. Green sleeve cuffs (#119C4A). Nike swoosh on upper-left chest (viewer left), solid green, slightly tilted. A blue shield crest on center chest with "CBF" and "BRASIL" text.
 
-COLLAR: Deep V-neck collar in two-tone green — outer edge #119C4A, inner edge #0D7E3B — double-layer construction. The V opens wide and deep. Same green color #119C4A on both sleeve cuffs.
+BODY — CRITICAL: Do NOT change the person's body shape, size, muscle mass, or proportions in ANY way. If the person is thin, keep them thin. If the person is a child with a child's body, keep exactly the child's body. If the person is large, keep them large. Only apply jersey fabric texture and color — do not remodel the body to look more athletic or muscular. The body silhouette must remain identical.
 
-NIKE SWOOSH: Upper-left area of chest (from viewer's perspective). Solid flat green #119C4A. The swoosh is tilted approximately -12 degrees. Proportionally large — about 12% of chest width. This is a standard Nike swoosh shape.
+POSE: Person faces directly at the camera, upright, arms relaxed at sides. If the original pose already matches, keep it exactly as is.
 
-CBF CREST (center of chest, below swoosh): This must be reproduced accurately.
-- 5 small five-pointed stars in a single horizontal row above the main shield, in dark green #119C4A
-- Main shield: rounded rectangular shield shape, dominant blue #0058A8
-- Inside the shield: a white southern cross / diamond lozenge pattern with green #119C4A lines forming an X or cross
-- Small text "CBF" in white centered inside the shield
-- Below the shield: text "BRASIL" in bold uppercase, dark green #119C4A
+FACE: Keep the person's face, skin, eyes, hair, and all facial features 100% unchanged. Do not alter the face.
 
-POSE: Person faces directly at the camera, body centered and upright, head straight, arms relaxed at sides — standard official CBF squad photo pose. Preserve exact age, body size, and proportions (keep child proportions if the person is a child).
+BACKGROUND: Clean white studio background, bright even lighting like official CBF squad photos.
 
-FACE: Preserve the person's face, skin tone, eyes, hair, and all facial features 100% identically. Do not alter the face.
+FRAMING: Portrait from head to mid-chest.
 
-BACKGROUND: Clean white background, bright even studio lighting, identical to official CBF national team portrait photos.
-
-FRAMING: Head and upper body to mid-chest, portrait orientation, Panini football sticker style.
-
-QUALITY: Photorealistic 4K, sharp focus, professional sports photography, hyperrealistic fabric and skin texture, DSLR quality.`
+QUALITY: 4K photorealistic, sharp, professional DSLR, hyperrealistic fabric texture.`
 
 export async function POST(req: NextRequest) {
   try {

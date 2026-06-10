@@ -43,6 +43,95 @@ function autoFit(ctx: SKRSContext2D, text: string, targetSize: number, fontFamil
   return 12
 }
 
+function drawStar(ctx: SKRSContext2D, cx: number, cy: number, outerR: number, innerR: number, color: string) {
+  ctx.fillStyle = color
+  ctx.beginPath()
+  for (let i = 0; i < 10; i++) {
+    const angle = (i * Math.PI / 5) - Math.PI / 2
+    const r = i % 2 === 0 ? outerR : innerR
+    const x = cx + r * Math.cos(angle)
+    const y = cy + r * Math.sin(angle)
+    if (i === 0) ctx.moveTo(x, y)
+    else ctx.lineTo(x, y)
+  }
+  ctx.closePath()
+  ctx.fill()
+}
+
+function drawCBFBadge(ctx: SKRSContext2D, cx: number, cy: number, bh: number) {
+  const sw = bh * 0.80   // shield width
+  const sh = bh * 0.80   // shield height
+  const sx = cx - sw / 2
+  const sy = cy - bh * 0.05
+
+  // ── Shield shape ──────────────────────────────────────────────────────────
+  ctx.beginPath()
+  ctx.moveTo(sx + sw * 0.12, sy)
+  ctx.lineTo(sx + sw * 0.88, sy)
+  ctx.quadraticCurveTo(sx + sw, sy, sx + sw, sy + sh * 0.13)
+  ctx.lineTo(sx + sw, sy + sh * 0.60)
+  ctx.bezierCurveTo(sx + sw, sy + sh * 0.84, cx + sw * 0.12, sy + sh * 0.97, cx, sy + sh)
+  ctx.bezierCurveTo(cx - sw * 0.12, sy + sh * 0.97, sx, sy + sh * 0.84, sx, sy + sh * 0.60)
+  ctx.lineTo(sx, sy + sh * 0.13)
+  ctx.quadraticCurveTo(sx, sy, sx + sw * 0.12, sy)
+  ctx.closePath()
+  ctx.fillStyle = '#0058A8'
+  ctx.fill()
+  ctx.strokeStyle = '#F5D020'
+  ctx.lineWidth = bh * 0.022
+  ctx.stroke()
+
+  // ── Yellow horizontal band ────────────────────────────────────────────────
+  const bandY = sy + sh * 0.53
+  const bandH = sh * 0.13
+  ctx.save()
+  ctx.clip()   // keep inside shield shape
+  ctx.beginPath()
+  ctx.moveTo(sx + sw * 0.12, sy)
+  ctx.lineTo(sx + sw * 0.88, sy)
+  ctx.quadraticCurveTo(sx + sw, sy, sx + sw, sy + sh * 0.13)
+  ctx.lineTo(sx + sw, sy + sh * 0.60)
+  ctx.bezierCurveTo(sx + sw, sy + sh * 0.84, cx + sw * 0.12, sy + sh * 0.97, cx, sy + sh)
+  ctx.bezierCurveTo(cx - sw * 0.12, sy + sh * 0.97, sx, sy + sh * 0.84, sx, sy + sh * 0.60)
+  ctx.lineTo(sx, sy + sh * 0.13)
+  ctx.quadraticCurveTo(sx, sy, sx + sw * 0.12, sy)
+  ctx.closePath()
+  ctx.fillStyle = '#F5D020'
+  ctx.fillRect(sx, bandY, sw, bandH)
+  ctx.restore()
+
+  // ── White cross (Cruz de Cristo) ──────────────────────────────────────────
+  const crossCx = cx
+  const crossCy = sy + sh * 0.36
+  const ca = sw * 0.19  // arm thickness
+  const cl = sw * 0.37  // arm half-length
+  ctx.fillStyle = '#FFFFFF'
+  ctx.fillRect(crossCx - ca / 2, crossCy - cl, ca, cl * 2)
+  ctx.fillRect(crossCx - cl, crossCy - ca / 2, cl * 2, ca)
+
+  // ── CBF text inside cross ──────────────────────────────────────────────────
+  ctx.font      = `bold ${bh * 0.115}px "Barlow"`
+  ctx.fillStyle = '#0058A8'
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  ctx.fillText('CBF', crossCx, crossCy + bh * 0.01)
+
+  // ── 5 stars above shield ──────────────────────────────────────────────────
+  const starR  = bh * 0.062
+  const starRi = starR * 0.42
+  const starY  = sy - bh * 0.065
+  for (let i = 0; i < 5; i++) {
+    drawStar(ctx, cx + (i - 2) * sw * 0.195, starY, starR, starRi, '#119C4A')
+  }
+
+  // ── BRASIL text below shield ──────────────────────────────────────────────
+  ctx.font      = `bold ${bh * 0.17}px "Barlow"`
+  ctx.fillStyle = '#119C4A'
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'top'
+  ctx.fillText('BRASIL', cx, sy + sh + bh * 0.04)
+}
+
 export async function compositeSticker(personPng: Buffer, data: UserData): Promise<Buffer> {
   registerFonts()
 
@@ -160,6 +249,10 @@ export async function compositeSticker(personPng: Buffer, data: UserData): Promi
 
   ctx.fillStyle = '#ffffff'
   ctx.fillText(clubeUpper, p2cx, clubY)
+
+  // ── Escudo CBF sobre a camiseta ──────────────────────────────────────────
+  // Posição estimada para retrato frontal padrão (busto): chest center ≈ (370, 650)
+  drawCBFBadge(ctx, 370, 655, 172)
 
   // Watermark
   if (data.watermark) {
