@@ -2,7 +2,23 @@ import { NextRequest, NextResponse } from 'next/server'
 
 const FLUX_VERSION = '897a70f5a7dbd8a0611413b3b98cf417b45f266bd595c571a22947619d9ae462'
 
-const JERSEY_PROMPT = `Transform this into an official Brazil national football team Panini sticker card portrait. The person must be facing directly at the camera, body upright and centered, head straight, natural confident posture, arms relaxed along the sides of the body — exactly like an official squad photo. Dress them in the 2026 Brazil CBF home jersey: canary yellow fabric, green V-neck collar with thin yellow border, green cuff trim on sleeves, CBF crest badge centered on the chest with five gold five-pointed stars above it and the word BRASIL in green letters below the badge, Nike swoosh logo on the upper left chest area. The background must be a clean neutral dark or blurred studio background. Professional sports photography lighting, sharp and realistic. Keep the person's face, eyes, skin tone, hair, and all facial features IDENTICAL — do not alter the face at all. Portrait framing showing head and upper body down to mid-chest.`
+const JERSEY_PROMPT = `Transform this photo into an official Brazil national football team Panini sticker card portrait.
+
+POSE: Person faces directly at the camera, body centered and upright, head straight forward, arms relaxed along the sides — standard official squad photo pose. Preserve the person's age, body size, and proportions exactly as they are (if a child, keep child body proportions).
+
+JERSEY — Brazil CBF 2026 official home kit, exact details:
+- Body fabric: saturated canary yellow hex #D9B42F with subtle fine vertical micro-stripe ribbed texture
+- Collar: narrow V-neck in brazil green hex #1B8A4A with thin yellow border
+- Sleeve cuffs: brazil green hex #1B8A4A
+- Upper LEFT chest (viewer left, wearer right): Nike swoosh in solid green #1B8A4A, about 12% of chest width
+- CENTER chest: CBF Brazil crest — blue oval shield #0057A4 with green cross inside, five gold five-pointed stars #F2D13D arranged above the shield, letters "CBF" inside the shield, text "BRASIL" in green #1B8A4A below the crest. Crest about 18% of chest width. This is the most important element — replicate it accurately.
+- Overall: matte finish, modern Brazil home kit look
+
+FACE & IDENTITY: Keep the person's face, skin tone, eyes, hair, expression, and ALL facial features completely identical. Do not change the face in any way.
+
+BACKGROUND: Neutral dark studio background, professional sports photography lighting.
+
+FRAMING: Portrait from head to mid-chest, Panini football sticker card style.`
 
 export async function POST(req: NextRequest) {
   try {
