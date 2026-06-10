@@ -6,11 +6,13 @@ import * as fs from 'fs'
 const ASSETS = path.join(process.cwd(), 'public/assets')
 
 function registerFonts() {
-  const bold = path.join(ASSETS, 'Barlow-Bold.ttf')
-  const semi = path.join(ASSETS, 'Barlow-SemiBold.ttf')
+  const bold    = path.join(ASSETS, 'Barlow-Bold.ttf')
+  const semi    = path.join(ASSETS, 'Barlow-SemiBold.ttf')
+  const regular = path.join(ASSETS, 'Barlow-Regular.ttf')
   if (fs.existsSync(bold) && !GlobalFonts.has('Barlow')) {
-    GlobalFonts.registerFromPath(bold, 'Barlow')
-    GlobalFonts.registerFromPath(semi, 'BarlowSemi')
+    GlobalFonts.registerFromPath(bold,    'Barlow')
+    GlobalFonts.registerFromPath(semi,    'BarlowSemi')
+    GlobalFonts.registerFromPath(regular, 'BarlowRegular')
   }
 }
 
@@ -110,18 +112,19 @@ export async function compositeSticker(personPng: Buffer, data: UserData): Promi
   const p1cx = (PILL_X1 + PILL1_X2) / 2
   const p1cw = PILL1_X2 - PILL_X1 - 48
 
-  const nomeUpper  = data.nome.toUpperCase()
-  const statsText  = `${data.data} | ${data.altura} | ${data.peso}`
+  const nomeUpper     = data.nome.toUpperCase()
+  const dataFormatada = data.data.replace(/\//g, '-')
+  const statsText     = `${dataFormatada} | ${data.altura} | ${data.peso}`
 
   const NAME_TARGET = Math.round(p1h * 0.33 / 0.72)
   const nameSize    = autoFit(ctx, nomeUpper, NAME_TARGET, 'Barlow', p1cw)
-  const statSize    = autoFit(ctx, statsText, Math.round(nameSize / 1.577), 'BarlowSemi', p1cw)
+  const statSize    = autoFit(ctx, statsText, Math.round(nameSize / 1.577), 'BarlowRegular', p1cw)
 
   ctx.font = `${nameSize}px "Barlow"`
   const nm = ctx.measureText(nomeUpper)
   const nameH = nm.actualBoundingBoxAscent + nm.actualBoundingBoxDescent
 
-  ctx.font = `${statSize}px "BarlowSemi"`
+  ctx.font = `${statSize}px "BarlowRegular"`
   const sm = ctx.measureText(statsText)
   const statH = sm.actualBoundingBoxAscent + sm.actualBoundingBoxDescent
 
@@ -136,7 +139,7 @@ export async function compositeSticker(personPng: Buffer, data: UserData): Promi
   ctx.fillStyle = '#ffffff'
   ctx.fillText(nomeUpper, p1cx, baseY)
 
-  ctx.font      = `${statSize}px "BarlowSemi"`
+  ctx.font      = `${statSize}px "BarlowRegular"`
   ctx.fillStyle = 'rgba(255,255,255,0.90)'
   ctx.fillText(statsText, p1cx, baseY + GAP + statH)
 
