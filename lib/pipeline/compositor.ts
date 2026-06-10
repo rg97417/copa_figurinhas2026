@@ -48,10 +48,11 @@ async function detectBadgePosition(fotoResized: Buffer): Promise<{ cx: number; c
     const personTop  = -Math.round((info as { trimOffsetTop?: number }).trimOffsetTop  ?? 0)
     const personW    = info.width
     const personH    = info.height
-    // Badge no centro X da pessoa, ~52% da altura (peito superior)
+    // Badge no centro X da pessoa, ~57% da altura (peito superior), travado entre Y=625 e Y=680 para evitar garganta ou barriga
+    const cyRaw = personTop + Math.round(personH * 0.57)
     return {
       cx: personLeft + Math.round(personW / 2),
-      cy: personTop  + Math.round(personH * 0.52),
+      cy: Math.max(625, Math.min(680, cyRaw)),
     }
   } catch {
     return { cx: BADGE_CX_DEFAULT, cy: BADGE_CY_DEFAULT }
