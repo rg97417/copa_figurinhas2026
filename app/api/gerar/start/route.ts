@@ -1,17 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import OpenAI from 'openai'
-import { storeImage } from '@/lib/imageCache'
 import fs from 'fs'
 import path from 'path'
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! })
-
-const PROMPT =
-  'The first image is Neymar wearing the Brazil national team jersey. ' +
-  'The second image is a different person. ' +
-  'Replace Neymar in the first image with the person from the second image. ' +
-  'Keep everything else exactly the same: jersey, pose, framing, lighting and background. ' +
-  'The face and identity must match the second image exactly — do not change anything about their appearance.'
+// codeplugtech/face-swap no Replicate
+// target_image = imagem base (Neymar com jersey) — onde o rosto será colocado
+// swap_image   = foto da pessoa — rosto a extrair
+const FACESWAP_VERSION = '278a81e7ebb22db98bcba54de985d22cc1abeead2754eb1f2af717247be69b34'
 
 export async function POST(req: NextRequest) {
   try {
@@ -20,38 +14,37 @@ export async function POST(req: NextRequest) {
     if (!photo) return NextResponse.json({ error: 'Foto obrigatória' }, { status: 400 })
 
     const photoBuffer = Buffer.from(await photo.arrayBuffer())
-    const personMime  = (photo.type || 'image/jpeg').split('/')[1]
+    const mimeType    = photo.type || 'image/jpeg'
 
+    // Neymar com camiseta → target (onde o rosto vai ser colocado)
     const jerseyPath   = path.join(process.cwd(), 'public', 'assets', 'jersey_reference.png')
     const jerseyBase64 = fs.readFileSync(jerseyPath).toString('base64')
-    const personBase64 = photoBuffer.toString('base64')
+    const targetImage  = `data:image/png;base64,${jerseyBase64}`
 
-    // Responses API (gpt-4o) — mesmo pipeline que o ChatGPT web usa
-    const resp = await (openai.responses.create as Function)({
-      model: 'gpt-4o',
-      stream: false,
-      input: [
-        {
-          role: 'user',
-          content: [
-            { type: 'input_image', image_url: `data:image/png;base64,${jerseyBase64}` },
-            { type: 'input_image', image_url: `data:image/${personMime};base64,${personBase64}` },
-            { type: 'input_text',  text: PROMPT },
-          ],
+    // Foto da criança → swap (rosto a extrair)
+    const swapImage = `data:${mimeType};base64,${photoBuffer.toString('base64')}`
+
+    const res = await fetch('https://api.replicate.com/v1/predictions', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${process.env.REPLICATE_API_KEY!}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        version: FACESWAP_VERSION,
+        input: {
+          target_image: targetImage,
+          swap_image:   swapImage,
         },
-      ],
-      tools: [{ type: 'image_generation' }],
-    }) as { output: Array<{ type: string; result?: string | null }> }
+      }),
+    })
 
-    const imageCall = resp.output.find(o => o.type === 'image_generation_call')
-    const b64 = imageCall?.result
-    if (!b64) throw new Error('gpt-4o não retornou imagem')
-
-    const cacheId = storeImage(b64)
-    return NextResponse.json({ predictionId: `mock_openai_${cacheId}` })
+    if (!res.ok) throw new Error(`Replicate ${res.status}: ${await res.text()}`)
+    const prediction = await res.json()
+    return NextResponse.json({ predictionId: prediction.id })
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Erro interno'
-    console.error('[start/route] error:', msg)
+    console.error('[start/route] face-swap error:', msg)
     return NextResponse.json({ error: msg }, { status: 500 })
   }
 }
