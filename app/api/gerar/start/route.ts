@@ -33,8 +33,8 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify({
         version: FACESWAP_VERSION,
         input: {
-          target_image: targetImage,
-          swap_image:   swapImage,
+          input_image: targetImage,
+          swap_image:  swapImage,
         },
       }),
     })
