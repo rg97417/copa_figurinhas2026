@@ -35,10 +35,14 @@ POSE — copy exactly from IMAGE 2:
 
 JERSEY — copy exactly from IMAGE 2:
 - canary yellow body
-- dark green V-neck collar
-- CBF crest centered on chest with five stars above it and BRASIL text below
-- Nike swoosh on left chest
+- dark green V-neck collar with green sleeve cuffs
+- Nike swoosh on the UPPER LEFT of the chest (small, dark green)
+- CBF badge CENTERED in the MIDDLE of the chest — NOT on the left, NOT on the right, exactly centered
+- Five dark green stars in an arc ABOVE the CBF badge
+- "BRASIL" text in dark green BELOW the CBF badge
+- The Nike swoosh and the CBF badge are on DIFFERENT positions: Nike upper-left, CBF centered-middle
 - same fabric texture and sheen as IMAGE 2
+- Do NOT place the CBF badge on the right side or left side — it must be dead center
 
 BACKGROUND:
 - solid teal/cyan blue, clean studio background
