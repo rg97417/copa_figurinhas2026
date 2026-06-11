@@ -1,11 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
+import OpenAI, { toFile } from 'openai'
+import { storeImage } from '@/lib/imageCache'
 import fs from 'fs'
 import path from 'path'
 
-// codeplugtech/face-swap no Replicate
-// target_image = imagem base (Neymar com jersey) — onde o rosto será colocado
-// swap_image   = foto da pessoa — rosto a extrair
-const FACESWAP_VERSION = '278a81e7ebb22db98bcba54de985d22cc1abeead2754eb1f2af717247be69b34'
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! })
+
+// gpt-image-2 — modelo atual do ChatGPT (abril 2026)
+// Suporta "insert people while preserving likeness" nativamente
+const PROMPT =
+  'The first image is Neymar wearing the Brazil national team jersey. ' +
+  'The second image is a different person. ' +
+  'Replace Neymar with the person from the second image. ' +
+  'Keep everything else exactly the same: jersey, pose, framing, lighting and background. ' +
+  'Preserve the exact face, skin tone, hair and age from the second image.'
 
 export async function POST(req: NextRequest) {
   try {
@@ -14,37 +22,31 @@ export async function POST(req: NextRequest) {
     if (!photo) return NextResponse.json({ error: 'Foto obrigatória' }, { status: 400 })
 
     const photoBuffer = Buffer.from(await photo.arrayBuffer())
-    const mimeType    = photo.type || 'image/jpeg'
+    const mimeType    = (photo.type || 'image/jpeg') as 'image/jpeg' | 'image/png' | 'image/webp'
 
-    // Neymar com camiseta → target (onde o rosto vai ser colocado)
-    const jerseyPath   = path.join(process.cwd(), 'public', 'assets', 'jersey_reference.png')
-    const jerseyBase64 = fs.readFileSync(jerseyPath).toString('base64')
-    const targetImage  = `data:image/png;base64,${jerseyBase64}`
+    // Base: Neymar com a camiseta
+    const jerseyPath = path.join(process.cwd(), 'public', 'assets', 'jersey_reference.png')
+    const jerseyFile = await toFile(fs.readFileSync(jerseyPath), 'jersey.png', { type: 'image/png' })
 
-    // Foto da criança → swap (rosto a extrair)
-    const swapImage = `data:${mimeType};base64,${photoBuffer.toString('base64')}`
+    // Referência de identidade: foto da pessoa
+    const personFile = await toFile(photoBuffer, 'person.png', { type: mimeType })
 
-    const res = await fetch('https://api.replicate.com/v1/predictions', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${process.env.REPLICATE_API_KEY!}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        version: FACESWAP_VERSION,
-        input: {
-          input_image: targetImage,
-          swap_image:  swapImage,
-        },
-      }),
+    const response = await openai.images.edit({
+      model: 'gpt-image-2',
+      image: [jerseyFile, personFile],
+      prompt: PROMPT,
+      n: 1,
+      size: '1024x1024',
     })
 
-    if (!res.ok) throw new Error(`Replicate ${res.status}: ${await res.text()}`)
-    const prediction = await res.json()
-    return NextResponse.json({ predictionId: prediction.id })
+    const b64 = response.data?.[0]?.b64_json
+    if (!b64) throw new Error('gpt-image-2 não retornou imagem')
+
+    const cacheId = storeImage(b64)
+    return NextResponse.json({ predictionId: `mock_openai_${cacheId}` })
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Erro interno'
-    console.error('[start/route] face-swap error:', msg)
+    console.error('[start/route] error:', msg)
     return NextResponse.json({ error: msg }, { status: 500 })
   }
 }
