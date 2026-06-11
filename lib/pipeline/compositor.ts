@@ -25,10 +25,6 @@ const FOTO_H    = 950
 const FOTO_LEFT = Math.round((W - FOTO_W) / 2)   // 183 — centralizado horizontalmente
 const FADE_START = Math.round(FOTO_H * 0.78)       // início do fade para o nome
 
-// Badge CBF sobreposto programaticamente — sempre correto independente da IA
-const BADGE_SIZE = 190
-const BADGE_LEFT = Math.round(W / 2 - BADGE_SIZE / 2)  // centralizado no card
-const BADGE_TOP  = Math.round(FOTO_H * 0.54)             // ~54% da foto = região do peito
 
 const PILL_X1  = 60,  PILL1_X2 = 760, PILL2_X2 = 703
 const P1_Y1 = 1058, P1_Y2 = 1198
@@ -99,16 +95,8 @@ export async function compositeSticker(personPng: Buffer, data: UserData): Promi
     .png()
     .toBuffer()
 
-  // ── 3. Sobrepor badge CBF correto (independente do que a IA gerou) ────────
-  const cbfBadge = await sharp(path.join(ASSETS, 'cbf_badge_clean.png'))
-    .resize(BADGE_SIZE)
-    .png()
-    .toBuffer()
-
-  const withBadge = await sharp(composited)
-    .composite([{ input: cbfBadge, left: BADGE_LEFT, top: BADGE_TOP }])
-    .png()
-    .toBuffer()
+  // ── 3. Badge gerado pela IA junto com a camiseta ─────────────────────────
+  const withBadge = composited
 
   // ── 4. Canvas: pills + texto + watermark ─────────────────────────────────
   const canvas = createCanvas(W, H)

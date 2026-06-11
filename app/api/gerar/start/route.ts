@@ -11,30 +11,13 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! })
 // Resultado: retrato limpo da pessoa com a camiseta e pose do IMAGE 2
 // O card/figurinha é montado depois pelo compositeSticker
 const SWAP_PROMPT = `
-You have 2 images:
-- IMAGE 1: photo of a person — use ONLY for their face/identity
-- IMAGE 2: Neymar in a yellow jersey — use ONLY for pose, framing, background
+IMAGE 1 is a photo of a person. IMAGE 2 is Neymar wearing the Brazil national team jersey.
 
-TASK: Output a photo of the person from IMAGE 1, in the same pose and framing as IMAGE 2.
-
-FACE — copy exactly from IMAGE 1, change nothing:
-- Same facial structure, eyes, nose, mouth, skin tone, hair, age
-- Do not retouch, relight or alter the face in any way
-
-JERSEY:
-- Plain canary yellow fabric, dark green V-neck collar, dark green sleeve cuffs
-- IMPORTANT: Do NOT put any logos, badges, crests, emblems or text on the jersey
-- The jersey chest must be plain yellow with absolutely no markings
-- Logos will be added in post-processing — leave the chest area clean
-
-FRAMING — copy from IMAGE 2:
-- Upper body portrait: full head + chest + upper stomach visible
-- Head in the top third of the frame
-- Same camera distance as IMAGE 2 — do not zoom into the face
-
-BACKGROUND: solid dark gray, no text, no graphics
-
-OUTPUT: photorealistic, sharp, professional sports portrait photo
+Take the person from IMAGE 1 and place them wearing the exact same jersey as in IMAGE 2.
+Use the same pose, same framing, same lighting and same background as IMAGE 2.
+Keep the person's face, skin tone, hair and age exactly as in IMAGE 1 — do not change anything about their appearance.
+The jersey must match IMAGE 2 exactly: same yellow color, same green collar, same CBF badge centered on the chest, same Nike swoosh, same BRASIL text.
+Output a clean photorealistic sports portrait. No card frame, no text overlay, no watermark.
 `.trim()
 
 export async function POST(req: NextRequest) {
