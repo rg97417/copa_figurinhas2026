@@ -9,49 +9,53 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! })
 // IMAGE 1: foto da pessoa (identidade)
 // IMAGE 2: camiseta_exemplo.png — Neymar com a camiseta da seleção (pose + jersey)
 // Resultado: retrato limpo da pessoa com a camiseta e pose do IMAGE 2
-// O card/figurinha é montado depois pelo compositeSticker — NÃO deve aparecer aqui
+// O card/figurinha é montado depois pelo compositeSticker
 const SWAP_PROMPT = `
 You have 2 images:
-- IMAGE 1: A photo of a person. Use it ONLY to extract their identity (face, skin tone, hair, age, expression).
-- IMAGE 2: A clean portrait photo of Neymar wearing the Brazil national team jersey. Use it ONLY for pose, jersey design, framing, lighting and background.
+- IMAGE 1: A photo of a person. Extract ONLY their identity: face, skin tone, hair, age, expression.
+- IMAGE 2: A portrait photo of Neymar wearing the Brazil national team jersey. Copy ONLY: pose, body framing, jersey design, lighting, background color.
 
-TASK: Generate a clean portrait photo of the person from IMAGE 1, wearing the exact same Brazil national team jersey from IMAGE 2, in the exact same pose and framing as IMAGE 2.
+TASK: Generate a photorealistic portrait of the person from IMAGE 1, placed in the exact same pose, framing and jersey as IMAGE 2.
 
-IDENTITY — copy exactly from IMAGE 1:
-- face structure, eyes, nose, mouth, ears
-- skin tone and texture
-- hair color and hairstyle
-- age appearance
-- expression
+─── FRAMING (match IMAGE 2 exactly) ───
+- Upper body shot: head fully visible at top, jersey visible down to the lower chest/stomach area
+- Same zoom level as IMAGE 2 — do NOT zoom into the face only
+- Head occupies roughly the top 40% of the frame
+- Full jersey chest visible with both Nike swoosh and CBF badge clearly shown
+- Shoulders fully visible and squared
 
-POSE — copy exactly from IMAGE 2:
-- front facing, body centered
-- shoulders squared to camera
-- head centered, not tilted
-- looking directly into camera
-- upper body crop (same as IMAGE 2)
-- same camera distance and framing
-- arms relaxed at sides
+─── IDENTITY (from IMAGE 1 only) ───
+- Keep face 100% identical: structure, eyes, nose, mouth, skin tone, hair, age
+- Do NOT alter the person's appearance in any way
 
-JERSEY — copy exactly from IMAGE 2:
-- canary yellow body
-- dark green V-neck collar with green sleeve cuffs
-- Nike swoosh on the UPPER LEFT of the chest (small, dark green)
-- CBF badge CENTERED in the MIDDLE of the chest — NOT on the left, NOT on the right, exactly centered
-- Five dark green stars in an arc ABOVE the CBF badge
-- "BRASIL" text in dark green BELOW the CBF badge
-- The Nike swoosh and the CBF badge are on DIFFERENT positions: Nike upper-left, CBF centered-middle
-- same fabric texture and sheen as IMAGE 2
-- Do NOT place the CBF badge on the right side or left side — it must be dead center
+─── JERSEY (replicate IMAGE 2 exactly) ───
+The jersey has TWO separate elements at different positions — do NOT confuse them:
 
-BACKGROUND:
-- solid teal/cyan blue, clean studio background
-- no text, no graphics, no card elements, no watermarks
+ELEMENT A — Nike swoosh:
+- Small dark green checkmark
+- Positioned on the UPPER chest, on the person's RIGHT pectoral (which is the viewer's LEFT side)
+- It is small and sits alone in the upper-left zone
 
-OUTPUT:
-- photorealistic, 4K, ultra sharp, HDR
-- professional sports portrait photography
-- NO card frame, NO sticker design, NO text overlay
+ELEMENT B — CBF badge:
+- Large circular/shield badge with CBF logo
+- Positioned in the HORIZONTAL CENTER of the chest, lower than the Nike swoosh
+- It is NOT on the left, NOT on the right — it is perfectly CENTERED on the chest
+- Stars arc ABOVE the badge, "BRASIL" text BELOW the badge
+- If you place the badge anywhere other than the horizontal center, the image is WRONG
+
+JERSEY DETAILS:
+- Canary yellow body
+- Dark green V-neck collar
+- Dark green sleeve cuffs
+- Same fabric texture as IMAGE 2
+
+─── BACKGROUND ───
+- Solid dark gray/charcoal background (same as IMAGE 2)
+- Clean, no gradients, no text, no graphics
+
+─── OUTPUT ───
+- Photorealistic, sharp, professional sports portrait
+- NO card frame, NO sticker design, NO text overlay, NO watermark
 `.trim()
 
 export async function POST(req: NextRequest) {
@@ -75,8 +79,7 @@ export async function POST(req: NextRequest) {
       image: [personFile, jerseyFile],
       prompt: SWAP_PROMPT,
       n: 1,
-      size: '1024x1536', // portrait — melhor para card vertical da figurinha
-      quality: 'high',   // máxima qualidade, preserva rosto e detalhes da camiseta
+      size: '1024x1024',
     })
 
     const b64 = response.data?.[0]?.b64_json
