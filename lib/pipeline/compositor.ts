@@ -19,11 +19,10 @@ function registerFonts() {
 // Layout do card
 const W = 1016, H = 1350
 
-// Foto da pessoa: reduzida e centralizada para proporcionar tamanho correto no card
-const FOTO_W    = 650
-const FOTO_H    = 950
-const FOTO_LEFT = Math.round((W - FOTO_W) / 2)   // 183 — centralizado horizontalmente
-const FADE_START = Math.round(FOTO_H * 0.78)       // início do fade para o nome
+const FOTO_W     = 800
+const FOTO_H     = 1115
+const FOTO_LEFT  = 0
+const FADE_START = Math.round(FOTO_H * 0.78)
 
 
 const PILL_X1  = 60,  PILL1_X2 = 760, PILL2_X2 = 703

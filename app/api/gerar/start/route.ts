@@ -1,24 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
-import OpenAI, { toFile } from 'openai'
+import OpenAI from 'openai'
 import { storeImage } from '@/lib/imageCache'
 import fs from 'fs'
 import path from 'path'
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! })
 
-// IMAGE 1: foto da pessoa (identidade)
-// IMAGE 2: camiseta_exemplo.png — Neymar com a camiseta da seleção (pose + jersey)
-// Resultado: retrato limpo da pessoa com a camiseta e pose do IMAGE 2
-// O card/figurinha é montado depois pelo compositeSticker
-const SWAP_PROMPT = `
-IMAGE 1 is a photo of Neymar wearing the Brazil national team jersey.
-IMAGE 2 is a photo of a person whose identity must replace Neymar.
-
-Replace the person in IMAGE 1 with the person from IMAGE 2.
-Keep everything else in IMAGE 1 exactly the same: jersey, pose, framing, lighting, background.
-The face, skin tone, hair and age must match IMAGE 2 exactly — do not change anything about that person's appearance.
-Output a clean photorealistic sports portrait. No card frame, no text overlay, no watermark.
-`.trim()
+const PROMPT =
+  'The first image is Neymar wearing the Brazil national team jersey. ' +
+  'The second image is a different person. ' +
+  'Replace Neymar in the first image with the person from the second image. ' +
+  'Keep everything else exactly the same: jersey, pose, framing, lighting and background. ' +
+  'The face and identity must match the second image exactly — do not change anything about their appearance.'
 
 export async function POST(req: NextRequest) {
   try {
@@ -27,32 +20,38 @@ export async function POST(req: NextRequest) {
     if (!photo) return NextResponse.json({ error: 'Foto obrigatória' }, { status: 400 })
 
     const photoBuffer = Buffer.from(await photo.arrayBuffer())
-    const mimeType = (photo.type || 'image/jpeg') as 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif'
+    const personMime  = (photo.type || 'image/jpeg').split('/')[1]
 
-    // IMAGE 1 (base a editar): Neymar com a camiseta da seleção
-    const jerseyPath = path.join(process.cwd(), 'public', 'assets', 'jersey_reference.png')
-    const jerseyFile = await toFile(fs.readFileSync(jerseyPath), 'jersey.png', { type: 'image/png' })
+    const jerseyPath   = path.join(process.cwd(), 'public', 'assets', 'jersey_reference.png')
+    const jerseyBase64 = fs.readFileSync(jerseyPath).toString('base64')
+    const personBase64 = photoBuffer.toString('base64')
 
-    // IMAGE 2 (referência de identidade): foto da pessoa
-    const personFile = await toFile(photoBuffer, 'person.png', { type: mimeType })
+    // Responses API (gpt-4o) — mesmo pipeline que o ChatGPT web usa
+    const resp = await (openai.responses.create as Function)({
+      model: 'gpt-4o',
+      stream: false,
+      input: [
+        {
+          role: 'user',
+          content: [
+            { type: 'input_image', image_url: `data:image/png;base64,${jerseyBase64}` },
+            { type: 'input_image', image_url: `data:image/${personMime};base64,${personBase64}` },
+            { type: 'input_text',  text: PROMPT },
+          ],
+        },
+      ],
+      tools: [{ type: 'image_generation' }],
+    }) as { output: Array<{ type: string; result?: string | null }> }
 
-    const response = await openai.images.edit({
-      model: 'gpt-image-1',
-      image: [jerseyFile, personFile],
-      prompt: SWAP_PROMPT,
-      n: 1,
-      size: '1024x1024',
-    })
-
-    const b64 = response.data?.[0]?.b64_json
-    if (!b64) throw new Error('OpenAI não retornou imagem')
+    const imageCall = resp.output.find(o => o.type === 'image_generation_call')
+    const b64 = imageCall?.result
+    if (!b64) throw new Error('gpt-4o não retornou imagem')
 
     const cacheId = storeImage(b64)
-    const mockId = `mock_openai_${cacheId}`
-    return NextResponse.json({ predictionId: mockId })
+    return NextResponse.json({ predictionId: `mock_openai_${cacheId}` })
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Erro interno'
-    console.error('[start/route] OpenAI error:', msg)
+    console.error('[start/route] error:', msg)
     return NextResponse.json({ error: msg }, { status: 500 })
   }
 }
