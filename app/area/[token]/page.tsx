@@ -135,6 +135,30 @@ export default async function AreaPage({ params }: Props) {
                 Arquivo PNG em alta resolução • Sem marca d&apos;água<br />
                 Pode baixar quantas vezes quiser
               </p>
+
+              <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', marginTop: 24, paddingTop: 20 }}>
+                <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12, textAlign: 'center', margin: '0 0 12px' }}>
+                  Quer gerar uma nova figurinha?
+                </p>
+                <a
+                  href="/"
+                  style={{
+                    display: 'block',
+                    textAlign: 'center',
+                    background: 'rgba(0,155,58,0.15)',
+                    border: '1px solid rgba(0,155,58,0.4)',
+                    color: '#4ddb88',
+                    fontWeight: 700,
+                    fontSize: 14,
+                    textDecoration: 'none',
+                    padding: '12px 24px',
+                    borderRadius: 50,
+                    letterSpacing: 0.5,
+                  }}
+                >
+                  ⚽ Gerar nova figurinha
+                </a>
+              </div>
             </>
           ) : (
             <>

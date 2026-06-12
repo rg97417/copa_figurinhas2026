@@ -13,6 +13,7 @@ interface KiwifyPayload {
   order_status?: string
   buyer_email?: string
   buyer_name?: string
+  buyer_cellphone?: string
 }
 
 function validateSecret(req: NextRequest, bodyToken?: string): boolean {
@@ -43,10 +44,11 @@ export async function POST(req: NextRequest) {
   }
 
   const event       = body.event ?? 'order_approved'
-  const orderId     = body.data?.order?.id    ?? body.order_id    ?? ''
-  const orderStatus = body.data?.order?.status ?? body.order_status ?? ''
-  const buyerEmail  = body.data?.buyer?.email  ?? body.buyer_email  ?? ''
-  const buyerName   = body.data?.buyer?.name   ?? body.buyer_name   ?? ''
+  const orderId     = body.data?.order?.id       ?? body.order_id    ?? ''
+  const orderStatus = body.data?.order?.status   ?? body.order_status ?? ''
+  const buyerEmail  = body.data?.buyer?.email    ?? body.buyer_email  ?? ''
+  const buyerName   = body.data?.buyer?.name     ?? body.buyer_name   ?? ''
+  const buyerPhone  = body.data?.buyer?.cellphone ?? ''
 
   const isPaid =
     event === 'order_approved' ||
@@ -92,8 +94,9 @@ export async function POST(req: NextRequest) {
     .update({
       paid: true,
       paid_at: new Date().toISOString(),
-      kiwify_order_id: orderId || null,
-      nome: order.nome ?? buyerName ?? null,
+      kiwify_order_id: orderId   || null,
+      nome:  order.nome          ?? buyerName  ?? null,
+      phone: buyerPhone          || null,
     } as Partial<OrderRow>)
     .eq('id', order.id)
 
