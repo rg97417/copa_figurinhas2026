@@ -21,7 +21,7 @@ export async function sendDownloadEmail(opts: {
     : ''
 
   await getResend().emails.send({
-    from: 'Convoca Kids <noreply@convocakids.com>',
+    from: 'Convoca Kids <contato@convocakids.com>',
     to: opts.to,
     subject: '🎽 Sua figurinha da Copa 2026 está pronta para download!',
     html: `<!DOCTYPE html>
