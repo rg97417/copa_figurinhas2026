@@ -7,6 +7,7 @@ import { useFigurinhaStore, formatBirthDate, getPlayerNumber } from '@/lib/store
 import { FigurinhaCard } from '@/components/FigurinhaCard'
 import { Testimonials } from '@/components/Testimonials'
 import { readUTM, appendUTMToUrl } from '@/lib/utm'
+import { pixelEvent } from '@/lib/pixel'
 
 const CHECKOUT_BASE = 'https://pay.kiwify.com.br/yRmTtd1'
 
@@ -82,6 +83,9 @@ export default function SuaFigurinhaPage() {
     setTimeout(() => setGooollVisible(true), 200)
     setTimeout(() => setCardVisible(true), 700)
     setTimeout(() => setShowConfetti(false), 4000)
+
+    // Pixel: usuário chegou à página da figurinha = ViewContent
+    pixelEvent('ViewContent', { content_name: 'Figurinha Copa 2026', value: 12.90, currency: 'BRL' })
   }, [store.name, router])
 
   const SHARE_LINK = 'https://www.convocakids.com/?utm_source=whatsapp&utm_medium=referral&utm_campaign=indicacao'
@@ -103,6 +107,7 @@ export default function SuaFigurinhaPage() {
   }, [])
 
   const handleCheckout = useCallback(() => {
+    pixelEvent('InitiateCheckout', { value: 12.90, currency: 'BRL', num_items: 1 })
     window.location.href = appendUTMToUrl(CHECKOUT_BASE, readUTM())
   }, [])
 

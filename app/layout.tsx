@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { Bebas_Neue, Barlow } from 'next/font/google'
 import { UTMCapture } from '@/components/UTMCapture'
+import { MetaPixel } from '@/components/MetaPixel'
 import './globals.css'
 
 const bebasNeue = Bebas_Neue({
@@ -65,6 +66,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚽</text></svg>" />
       </head>
       <body>
+        <MetaPixel />
         <UTMCapture />
         {children}
       </body>
