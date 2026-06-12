@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 
 interface OrderCard {
@@ -18,15 +18,15 @@ interface AreaData {
   has_pdf: boolean
 }
 
-type Tab = 'figurinhas' | 'pdfs'
+const BASE_URL = 'https://copa-figurinhas2026.vercel.app'
 
 export default function AreaPage() {
   const params = useParams()
   const token = params?.token as string
 
-  const [data, setData]     = useState<AreaData | null>(null)
-  const [status, setStatus] = useState<'loading' | 'error' | 'pending' | 'ok'>('loading')
-  const [tab, setTab]       = useState<Tab>('figurinhas')
+  const [data, setData]         = useState<AreaData | null>(null)
+  const [status, setStatus]     = useState<'loading' | 'error' | 'pending' | 'ok'>('loading')
+  const [sharing, setSharing]   = useState<string | null>(null) // token being shared
 
   useEffect(() => {
     if (!token) return
@@ -41,223 +41,273 @@ export default function AreaPage() {
       .catch(() => setStatus('error'))
   }, [token])
 
-  if (status === 'loading') return <Screen><Loading /></Screen>
-  if (status === 'error')   return <Screen><ErrorMsg /></Screen>
-  if (status === 'pending') return <Screen><Pending token={token} /></Screen>
+  const handleShare = useCallback(async (order: OrderCard) => {
+    setSharing(order.download_token)
+    const nome = order.nome ?? 'Figurinha'
+    const ogUrl = `${BASE_URL}/api/og/${order.download_token}`
+    const siteUrl = `${BASE_URL}/?utm_source=whatsapp&utm_medium=convite&utm_campaign=copa2026`
+    const shareText = `Olha minha figurinha da Copa 2026! ⚽🏆\n${ogUrl}\n\nCria a tua também: ${siteUrl}`
+
+    try {
+      if (typeof navigator !== 'undefined' && navigator.share) {
+        // Web Share API: tenta compartilhar o arquivo da figurinha
+        try {
+          const res = await fetch(`/api/og/${order.download_token}`)
+          if (res.ok) {
+            const blob = await res.blob()
+            const file = new File([blob], `${nome.replace(/\s+/g, '_')}_Copa2026.png`, { type: 'image/png' })
+            if (navigator.canShare?.({ files: [file] })) {
+              await navigator.share({
+                title: '⚽ Minha Figurinha Copa 2026',
+                text: `Cria a tua também: ${siteUrl}`,
+                files: [file],
+              })
+              setSharing(null)
+              return
+            }
+          }
+        } catch { /* cai pro fallback */ }
+
+        // Fallback Web Share sem arquivo
+        await navigator.share({ title: '⚽ Minha Figurinha Copa 2026', text: shareText })
+        setSharing(null)
+        return
+      }
+    } catch { /* usuário cancelou ou não suportado */ }
+
+    // Fallback: WhatsApp link
+    const wa = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`
+    window.open(wa, '_blank')
+    setSharing(null)
+  }, [])
+
+  if (status === 'loading') return <FullScreen><Spinner /></FullScreen>
+  if (status === 'error')   return <FullScreen><NotFound /></FullScreen>
+  if (status === 'pending') return <FullScreen><PendingView token={token} /></FullScreen>
   if (!data) return null
 
   const primeiroNome = data.nome.split(' ')[0]
-  const tabs: { id: Tab; label: string; icon: string }[] = [
-    { id: 'figurinhas', label: 'Figurinhas',  icon: '🗂️' },
-    { id: 'pdfs',       label: 'PDFs',        icon: '📄' },
-  ]
+  const multipleOrders = data.orders.length > 1
 
   return (
     <div style={s.page}>
-      {/* Nav */}
-      <nav style={s.nav}>
-        <div style={s.navLeft}>
-          <span style={{ fontSize: 20 }}>⚽</span>
-          <span style={s.navTitle}>MINHA ÁREA</span>
+      {/* ── Topo ── */}
+      <header style={s.header}>
+        <div style={s.headerLogo}>
+          <span style={{ fontSize: 18 }}>⚽</span>
+          <span style={s.headerLogoText}>Copa 2026</span>
         </div>
-        <a href="/" style={s.sairBtn}>Sair</a>
-      </nav>
+        <a href="/" style={s.headerExit}>Sair</a>
+      </header>
 
-      {/* Saudação */}
-      <div style={s.greeting}>
-        <h2 style={s.greetingTitle}>OLÁ! TUDO PRONTINHO<br />PRA VOCÊ BAIXAR 🏆</h2>
-        <p style={s.greetingSub}>
-          {data.orders.length} {data.orders.length === 1 ? 'arquivo liberado' : 'arquivos liberados'}
+      {/* ── Hero ── */}
+      <div style={s.hero}>
+        <div style={s.heroBadge}>✅ Pagamento confirmado</div>
+        <h1 style={s.heroTitle}>
+          Olá, <span style={s.heroName}>{primeiroNome}</span>!
+        </h1>
+        <p style={s.heroSub}>
+          {data.orders.length === 1
+            ? 'Sua figurinha personalizada está pronta.'
+            : `Você tem ${data.orders.length} figurinhas prontas.`}
         </p>
       </div>
 
-      {/* Tabs */}
-      <div style={s.tabBar}>
-        {tabs.map(t => (
-          <button
-            key={t.id}
-            onClick={() => setTab(t.id)}
-            style={{ ...s.tabBtn, ...(tab === t.id ? s.tabBtnActive : {}) }}
-          >
-            <span style={{ fontSize: 22 }}>{t.icon}</span>
-            <span style={s.tabLabel}>{t.label}</span>
-          </button>
-        ))}
-      </div>
-
-      {/* Conteúdo */}
-      <div style={s.content}>
-        {tab === 'figurinhas' && (
-          <>
-            <SectionHeader title="🏆 FIGURINHAS" count={data.orders.length} />
-            <div style={s.cardsRow}>
-              {data.orders.map(o => (
-                <FigurinhaCard key={o.id} order={o} />
-              ))}
-              <NewCard />
-            </div>
-          </>
-        )}
-
-        {tab === 'pdfs' && (
-          <>
-            <SectionHeader title="📄 PDFS" count={data.orders.length} />
+      {/* ── Figurinhas ── */}
+      <div style={{ padding: '0 16px', marginBottom: 24 }}>
+        {multipleOrders ? (
+          /* Carrossel horizontal */
+          <div style={s.carousel}>
             {data.orders.map(o => (
-              <PdfCard key={o.id} order={o} />
+              <StickerCard
+                key={o.id}
+                order={o}
+                onShare={() => handleShare(o)}
+                sharing={sharing === o.download_token}
+                compact
+              />
             ))}
-          </>
+          </div>
+        ) : (
+          /* Card único centralizado */
+          data.orders.length > 0 && (
+            <StickerCard
+              order={data.orders[0]}
+              onShare={() => handleShare(data.orders[0])}
+              sharing={sharing === data.orders[0].download_token}
+            />
+          )
         )}
-
-        {/* Quer mais */}
-        <div style={s.querMais}>
-          <p style={s.querMaisTitle}>Quer mais?</p>
-          <a
-            href={`https://wa.me/?text=${encodeURIComponent(`Olha minha figurinha da Copa 2026! 🏆 copa-figurinhas2026.vercel.app`)}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={s.btnShare}
-          >
-            💬 COMPARTILHAR COM AMIGOS
-          </a>
-          <a href="/" style={s.btnBuyAgain}>
-            🛒 COMPRAR DE NOVO
-          </a>
-        </div>
       </div>
+
+      {/* ── Criar nova ── */}
+      <div style={{ padding: '0 16px', marginBottom: 32 }}>
+        <a href="/" style={s.createNew}>
+          <span style={{ fontSize: 20 }}>⚽</span>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 14, color: '#fff' }}>Criar nova figurinha</div>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 2 }}>Para outra pessoa ou ocasião</div>
+          </div>
+          <span style={{ marginLeft: 'auto', color: 'rgba(255,255,255,0.4)', fontSize: 20 }}>›</span>
+        </a>
+      </div>
+
+      {/* ── Rodapé ── */}
+      <footer style={s.footer}>
+        <p style={s.footerText}>Figurinha Copa 2026 • Produto digital exclusivo</p>
+        <a href="/area" style={s.footerLink}>Recuperar link por email</a>
+      </footer>
     </div>
   )
 }
 
-/* ── Sub-components ── */
-
-function FigurinhaCard({ order }: { order: OrderCard }) {
-  const nome = order.nome ?? 'Figurinha'
-  const d = order.dados_figurinha ?? {}
-  const whatsappText = encodeURIComponent(`Olha minha figurinha da Copa 2026! 🏆`)
+/* ── Card da figurinha ── */
+function StickerCard({
+  order,
+  onShare,
+  sharing,
+  compact = false,
+}: {
+  order: OrderCard
+  onShare: () => void
+  sharing: boolean
+  compact?: boolean
+}) {
+  const nome = order.nome ?? 'Torcedor(a)'
+  const d    = order.dados_figurinha ?? {}
 
   return (
-    <div style={s.card}>
+    <div style={{ ...(compact ? s.cardCompact : s.card) }}>
       {/* Preview */}
-      <div style={s.cardPreview}>
+      <div style={compact ? s.previewCompact : s.preview}>
         {order.preview_url ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={order.preview_url} alt={nome} style={s.cardImg} />
+          <img
+            src={order.preview_url}
+            alt={nome}
+            style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: compact ? 12 : 16 }}
+          />
         ) : (
-          <div style={s.cardImgPlaceholder}>
-            <span style={{ fontSize: 36 }}>⚽</span>
+          <div style={s.previewPlaceholder}>
+            <span style={{ fontSize: compact ? 36 : 56 }}>⚽</span>
+            <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: 12, marginTop: 8 }}>Pronto para baixar</span>
+          </div>
+        )}
+        {/* Glow de fundo */}
+        <div style={compact ? s.glowCompact : s.glow} />
+      </div>
+
+      {/* Info */}
+      <div style={s.cardInfo}>
+        <div style={s.cardNome}>{nome}</div>
+        {d.clube && <div style={s.cardSub}>🏟️ {d.clube}</div>}
+        {!compact && d.data && (
+          <div style={s.cardMeta}>
+            {d.data && <span>📅 {d.data}</span>}
+            {d.altura && <span> · 📏 {d.altura}</span>}
+            {d.peso && <span> · ⚖️ {d.peso}</span>}
           </div>
         )}
       </div>
 
-      {/* Info */}
-      <p style={s.cardNome}>{nome}</p>
-      {d.clube && <p style={s.cardSub}>{d.clube}</p>}
-
-      <a href={`/api/download/${order.download_token}`} download style={s.btnDownload}>
-        ⬇ BAIXAR
-      </a>
-      <a
-        href={`https://wa.me/?text=${whatsappText}`}
-        target="_blank"
-        rel="noopener noreferrer"
-        style={s.btnWhatsapp}
-      >
-        <WhatsappIcon /> ENVIAR NO WHATSAPP
-      </a>
-    </div>
-  )
-}
-
-function NewCard() {
-  return (
-    <a href="/" style={s.newCard}>
-      <div style={s.newCardPlus}>+</div>
-      <p style={s.newCardLabel}>CRIAR FIGURINHA</p>
-    </a>
-  )
-}
-
-function PdfCard({ order }: { order: OrderCard }) {
-  const nome = order.nome ?? 'Figurinha'
-  const whatsappText = encodeURIComponent(`Olha minha figurinha da Copa 2026! 🏆`)
-
-  return (
-    <div style={s.pdfCard}>
-      {/* Thumbnail */}
-      <div style={s.pdfThumb}>
-        {order.preview_url ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={order.preview_url} alt={nome} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 10 }} />
-        ) : (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', fontSize: 32 }}>📄</div>
-        )}
-      </div>
-
-      {/* Info + botões */}
-      <div style={{ flex: 1 }}>
-        <p style={s.pdfTitle}>PDF — {nome}</p>
-        <a href={`/api/download/pdf/${order.download_token}`} download style={s.btnDownload}>
-          ⬇ BAIXAR
+      {/* Botões */}
+      <div style={compact ? s.btnsCompact : s.btns}>
+        <a
+          href={`/api/download/${order.download_token}`}
+          download
+          style={s.btnPrimary}
+        >
+          ⬇ Baixar PNG
         </a>
         <a
-          href={`https://wa.me/?text=${whatsappText}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{ ...s.btnWhatsapp, marginTop: 8 }}
+          href={`/api/download/pdf/${order.download_token}`}
+          download
+          style={s.btnSecondary}
         >
-          <WhatsappIcon /> ENVIAR NO WHATSAPP
+          📄 Baixar PDF (12 figurinhas)
         </a>
+        <button
+          onClick={onShare}
+          disabled={sharing}
+          style={s.btnWhatsapp}
+        >
+          {sharing ? '...' : (
+            <><WhatsIcon /> Enviar no WhatsApp</>
+          )}
+        </button>
       </div>
     </div>
   )
 }
 
-function SectionHeader({ title, count }: { title: string; count: number }) {
+/* ── Ícone WhatsApp ── */
+function WhatsIcon() {
   return (
-    <div style={s.sectionHeader}>
-      <span style={s.sectionTitle}>{title}</span>
-      <span style={s.sectionCount}>{count} {count === 1 ? 'item' : 'itens'}</span>
-    </div>
-  )
-}
-
-function WhatsappIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }}>
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"
+      style={{ display: 'inline', verticalAlign: 'middle', marginRight: 5 }}>
       <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
     </svg>
   )
 }
 
-function Screen({ children }: { children: React.ReactNode }) {
+/* ── Estados auxiliares ── */
+function FullScreen({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ minHeight: '100vh', background: '#FFD600', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Arial, sans-serif' }}>
+    <div style={{
+      minHeight: '100vh',
+      background: 'linear-gradient(160deg, #040D21 0%, #0A1B3E 100%)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      fontFamily: 'Arial, sans-serif',
+    }}>
       {children}
     </div>
   )
 }
 
-function Loading() {
-  return <div style={{ fontSize: 32, color: '#0a3d8f' }}>⏳</div>
-}
-
-function ErrorMsg() {
+function Spinner() {
   return (
-    <div style={{ textAlign: 'center', color: '#0a3d8f' }}>
-      <div style={{ fontSize: 40, marginBottom: 12 }}>😕</div>
-      <p style={{ fontWeight: 700 }}>Link não encontrado</p>
-      <a href="/area" style={{ color: '#0a3d8f', fontSize: 14 }}>Recuperar acesso por email</a>
+    <div style={{ textAlign: 'center' }}>
+      <div style={{ fontSize: 48, animation: 'spin 1s linear infinite' }}>⚽</div>
+      <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+      <p style={{ color: 'rgba(255,255,255,0.5)', marginTop: 16, fontSize: 14 }}>Carregando sua área...</p>
     </div>
   )
 }
 
-function Pending({ token }: { token: string }) {
+function NotFound() {
   return (
-    <div style={{ textAlign: 'center', color: '#0a3d8f', maxWidth: 320, padding: '0 20px' }}>
-      <div style={{ fontSize: 40, marginBottom: 12 }}>⏳</div>
-      <p style={{ fontWeight: 700, fontSize: 18 }}>Aguardando confirmação do pagamento</p>
-      <p style={{ fontSize: 14, lineHeight: 1.5 }}>Quando confirmado você receberá um email. Pode levar alguns minutos.</p>
-      <a href={`/area/${token}`} style={{ display: 'inline-block', marginTop: 16, background: '#0a3d8f', color: '#fff', padding: '12px 24px', borderRadius: 50, textDecoration: 'none', fontWeight: 700 }}>
+    <div style={{ textAlign: 'center', padding: '0 24px' }}>
+      <div style={{ fontSize: 52, marginBottom: 12 }}>😕</div>
+      <p style={{ color: '#fff', fontWeight: 700, fontSize: 18, margin: '0 0 8px' }}>Link não encontrado</p>
+      <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14, margin: '0 0 24px' }}>
+        Use o email cadastrado para recuperar seu acesso.
+      </p>
+      <a href="/area" style={{
+        display: 'inline-block', background: '#FFD600', color: '#000',
+        fontWeight: 900, fontSize: 14, textDecoration: 'none',
+        padding: '14px 28px', borderRadius: 50,
+      }}>
+        📩 Recuperar por email
+      </a>
+    </div>
+  )
+}
+
+function PendingView({ token }: { token: string }) {
+  return (
+    <div style={{ textAlign: 'center', padding: '0 24px', maxWidth: 340 }}>
+      <div style={{ fontSize: 52, marginBottom: 16 }}>⏳</div>
+      <p style={{ color: '#fff', fontWeight: 900, fontSize: 20, margin: '0 0 10px' }}>
+        Aguardando confirmação
+      </p>
+      <p style={{ color: 'rgba(255,255,255,0.55)', fontSize: 14, lineHeight: 1.6, margin: '0 0 28px' }}>
+        Assim que o pagamento for confirmado você receberá um email. Pode levar alguns minutos.
+      </p>
+      <a href={`/area/${token}`} style={{
+        display: 'inline-block', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)',
+        color: '#fff', fontWeight: 700, fontSize: 14, textDecoration: 'none',
+        padding: '14px 28px', borderRadius: 50,
+      }}>
         🔄 Verificar novamente
       </a>
     </div>
@@ -268,273 +318,240 @@ function Pending({ token }: { token: string }) {
 const s = {
   page: {
     minHeight: '100vh',
-    background: '#FFD600',
+    background: 'linear-gradient(160deg, #040D21 0%, #0B1B3E 60%, #061226 100%)',
     fontFamily: '"Arial", sans-serif',
-    paddingBottom: 40,
+    paddingBottom: 48,
   },
-  nav: {
+  header: {
     display: 'flex' as const,
     alignItems: 'center' as const,
     justifyContent: 'space-between' as const,
-    padding: '14px 20px',
-    background: '#FFD600',
+    padding: '16px 20px',
+    borderBottom: '1px solid rgba(255,255,255,0.06)',
   },
-  navLeft: {
+  headerLogo: {
     display: 'flex' as const,
     alignItems: 'center' as const,
     gap: 8,
   },
-  navTitle: {
+  headerLogoText: {
+    color: '#FFD600',
     fontWeight: 900,
-    fontSize: 14,
-    color: '#0a3d8f',
-    letterSpacing: 1,
+    fontSize: 15,
+    letterSpacing: 0.5,
   },
-  sairBtn: {
-    fontWeight: 700,
-    fontSize: 14,
-    color: '#0a3d8f',
-    textDecoration: 'underline' as const,
+  headerExit: {
+    color: 'rgba(255,255,255,0.4)',
+    fontSize: 13,
+    textDecoration: 'none',
   },
-  greeting: {
-    padding: '4px 20px 20px',
+  hero: {
+    padding: '32px 20px 20px',
     textAlign: 'center' as const,
   },
-  greetingTitle: {
-    fontSize: 22,
-    fontWeight: 900,
-    color: '#0a3d8f',
-    letterSpacing: 1,
-    margin: '0 0 6px',
-    lineHeight: 1.3,
-    textTransform: 'uppercase' as const,
-  },
-  greetingSub: {
-    fontSize: 13,
-    color: '#0a3d8f',
-    margin: 0,
-    opacity: 0.7,
-  },
-  tabBar: {
-    display: 'flex' as const,
-    gap: 10,
-    padding: '0 16px 16px',
-    overflowX: 'auto' as const,
-  },
-  tabBtn: {
-    display: 'flex' as const,
-    flexDirection: 'column' as const,
-    alignItems: 'center' as const,
-    background: 'rgba(255,255,255,0.5)',
-    border: '2px solid transparent',
-    borderRadius: 14,
-    padding: '12px 18px',
-    cursor: 'pointer' as const,
-    minWidth: 80,
-    gap: 6,
-    transition: 'all 0.15s',
-  },
-  tabBtnActive: {
-    background: '#fff',
-    border: '2px solid #0a3d8f',
-  },
-  tabLabel: {
+  heroBadge: {
+    display: 'inline-block',
+    background: 'rgba(0,200,83,0.15)',
+    border: '1px solid rgba(0,200,83,0.35)',
+    color: '#00C853',
     fontSize: 11,
     fontWeight: 700,
-    color: '#0a3d8f',
-    textTransform: 'uppercase' as const,
+    padding: '5px 14px',
+    borderRadius: 20,
     letterSpacing: 0.5,
+    marginBottom: 16,
   },
-  content: {
-    padding: '0 16px',
-  },
-  sectionHeader: {
-    display: 'flex' as const,
-    justifyContent: 'space-between' as const,
-    alignItems: 'center' as const,
-    marginBottom: 12,
-  },
-  sectionTitle: {
+  heroTitle: {
+    color: '#fff',
+    fontSize: 28,
     fontWeight: 900,
+    margin: '0 0 8px',
+    letterSpacing: -0.5,
+  },
+  heroName: {
+    background: 'linear-gradient(90deg, #FFD600, #FF9F00)',
+    WebkitBackgroundClip: 'text' as const,
+    WebkitTextFillColor: 'transparent' as const,
+  },
+  heroSub: {
+    color: 'rgba(255,255,255,0.5)',
     fontSize: 14,
-    color: '#0a3d8f',
-    letterSpacing: 0.5,
+    margin: 0,
+    lineHeight: 1.5,
   },
-  sectionCount: {
-    fontSize: 12,
-    color: '#0a3d8f',
-    opacity: 0.6,
-  },
-  cardsRow: {
-    display: 'grid' as const,
-    gridTemplateColumns: 'repeat(2, 1fr)',
-    gap: 12,
-    marginBottom: 24,
-  },
+  // Card único (destaque)
   card: {
-    background: '#fff',
-    borderRadius: 18,
-    padding: 14,
-    display: 'flex' as const,
-    flexDirection: 'column' as const,
-    alignItems: 'center' as const,
-    boxShadow: '0 2px 10px rgba(0,0,0,0.08)',
+    background: 'rgba(255,255,255,0.04)',
+    border: '1px solid rgba(255,214,0,0.18)',
+    borderRadius: 24,
+    padding: 20,
+    overflow: 'hidden' as const,
+    position: 'relative' as const,
   },
-  cardPreview: {
+  preview: {
+    width: '100%',
+    maxWidth: 280,
+    margin: '0 auto 20px',
+    aspectRatio: '3/4',
+    borderRadius: 16,
+    overflow: 'hidden' as const,
+    background: 'rgba(255,255,255,0.04)',
+    display: 'flex' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    position: 'relative' as const,
+    boxShadow: '0 20px 60px rgba(0,0,0,0.6)',
+  },
+  glow: {
+    position: 'absolute' as const,
+    bottom: -30,
+    left: '50%',
+    transform: 'translateX(-50%)',
+    width: 180,
+    height: 60,
+    background: 'radial-gradient(ellipse, rgba(255,214,0,0.25) 0%, transparent 70%)',
+    pointerEvents: 'none' as const,
+  },
+  // Card compacto (carrossel)
+  cardCompact: {
+    background: 'rgba(255,255,255,0.05)',
+    border: '1px solid rgba(255,214,0,0.15)',
+    borderRadius: 20,
+    padding: 14,
+    width: 200,
+    flexShrink: 0,
+  },
+  previewCompact: {
     width: '100%',
     aspectRatio: '3/4',
     borderRadius: 12,
     overflow: 'hidden' as const,
-    marginBottom: 10,
-    background: '#f0f0f0',
+    background: 'rgba(255,255,255,0.04)',
     display: 'flex' as const,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
+    position: 'relative' as const,
+    marginBottom: 12,
+    boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
   },
-  cardImg: {
-    width: '100%',
-    height: '100%',
-    objectFit: 'cover' as const,
+  glowCompact: {
+    position: 'absolute' as const,
+    bottom: -20,
+    left: '50%',
+    transform: 'translateX(-50%)',
+    width: 100,
+    height: 40,
+    background: 'radial-gradient(ellipse, rgba(255,214,0,0.2) 0%, transparent 70%)',
+    pointerEvents: 'none' as const,
   },
-  cardImgPlaceholder: {
-    display: 'flex' as const,
-    alignItems: 'center' as const,
-    justifyContent: 'center' as const,
-    width: '100%',
-    height: '100%',
-  },
-  cardNome: {
-    fontWeight: 900,
-    fontSize: 13,
-    color: '#0a3d8f',
-    textAlign: 'center' as const,
-    margin: '0 0 2px',
-    textTransform: 'uppercase' as const,
-  },
-  cardSub: {
-    fontSize: 11,
-    color: '#666',
-    margin: '0 0 12px',
-    textAlign: 'center' as const,
-  },
-  newCard: {
-    background: 'rgba(255,255,255,0.5)',
-    border: '2px dashed rgba(10,61,143,0.3)',
-    borderRadius: 18,
-    padding: 14,
+  previewPlaceholder: {
     display: 'flex' as const,
     flexDirection: 'column' as const,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
-    textDecoration: 'none',
-    minHeight: 200,
-    cursor: 'pointer' as const,
+    width: '100%',
+    height: '100%',
   },
-  newCardPlus: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    background: 'rgba(10,61,143,0.1)',
-    display: 'flex' as const,
-    alignItems: 'center' as const,
-    justifyContent: 'center' as const,
-    fontSize: 26,
-    color: '#0a3d8f',
-    marginBottom: 8,
-  },
-  newCardLabel: {
-    fontSize: 11,
-    fontWeight: 900,
-    color: '#0a3d8f',
+  cardInfo: {
     textAlign: 'center' as const,
-    letterSpacing: 0.5,
-    margin: 0,
+    marginBottom: 20,
   },
-  pdfCard: {
-    background: '#fff',
-    borderRadius: 18,
-    padding: 16,
-    display: 'flex' as const,
-    gap: 14,
-    alignItems: 'flex-start' as const,
-    marginBottom: 12,
-    boxShadow: '0 2px 10px rgba(0,0,0,0.08)',
-  },
-  pdfThumb: {
-    width: 90,
-    height: 120,
-    borderRadius: 10,
-    background: '#f0f0f0',
-    flexShrink: 0,
-    overflow: 'hidden' as const,
-  },
-  pdfTitle: {
-    fontWeight: 900,
-    fontSize: 13,
-    color: '#0a3d8f',
-    margin: '0 0 12px',
-    textTransform: 'uppercase' as const,
-  },
-  btnDownload: {
-    display: 'block',
-    textAlign: 'center' as const,
-    background: '#0a3d8f',
+  cardNome: {
     color: '#fff',
     fontWeight: 900,
+    fontSize: 16,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase' as const,
+    marginBottom: 4,
+  },
+  cardSub: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 13,
+    marginBottom: 4,
+  },
+  cardMeta: {
+    color: 'rgba(255,255,255,0.35)',
     fontSize: 12,
+  },
+  btns: {
+    display: 'flex' as const,
+    flexDirection: 'column' as const,
+    gap: 10,
+  },
+  btnsCompact: {
+    display: 'flex' as const,
+    flexDirection: 'column' as const,
+    gap: 8,
+  },
+  btnPrimary: {
+    display: 'block',
+    textAlign: 'center' as const,
+    background: 'linear-gradient(135deg, #FFD600, #FF9F00)',
+    color: '#000',
+    fontWeight: 900,
+    fontSize: 14,
     textDecoration: 'none',
-    padding: '10px 12px',
+    padding: '15px',
     borderRadius: 50,
     letterSpacing: 0.5,
-    marginBottom: 8,
+  },
+  btnSecondary: {
+    display: 'block',
+    textAlign: 'center' as const,
+    background: 'rgba(255,255,255,0.07)',
+    border: '1px solid rgba(255,255,255,0.15)',
+    color: 'rgba(255,255,255,0.8)',
+    fontWeight: 700,
+    fontSize: 13,
+    textDecoration: 'none',
+    padding: '13px',
+    borderRadius: 50,
+    letterSpacing: 0.3,
   },
   btnWhatsapp: {
-    display: 'block',
+    display: 'block' as const,
+    width: '100%',
     textAlign: 'center' as const,
     background: '#25D366',
     color: '#fff',
     fontWeight: 900,
-    fontSize: 12,
-    textDecoration: 'none',
-    padding: '10px 12px',
-    borderRadius: 50,
-    letterSpacing: 0.5,
-  },
-  querMais: {
-    background: '#fff',
-    borderRadius: 18,
-    padding: '20px 16px',
-    marginTop: 8,
-    textAlign: 'center' as const,
-    boxShadow: '0 2px 10px rgba(0,0,0,0.08)',
-  },
-  querMaisTitle: {
     fontSize: 14,
-    color: '#444',
-    margin: '0 0 14px',
-  },
-  btnShare: {
-    display: 'block',
-    background: '#25D366',
-    color: '#fff',
-    fontWeight: 900,
-    fontSize: 13,
-    textDecoration: 'none',
-    padding: '14px',
-    borderRadius: 50,
-    marginBottom: 10,
-    letterSpacing: 0.5,
-  },
-  btnBuyAgain: {
-    display: 'block',
-    background: 'transparent',
-    border: '2px solid #0a3d8f',
-    color: '#0a3d8f',
-    fontWeight: 900,
-    fontSize: 13,
-    textDecoration: 'none',
-    padding: '12px',
+    border: 'none',
+    padding: '15px',
     borderRadius: 50,
     letterSpacing: 0.5,
+    cursor: 'pointer' as const,
+  },
+  carousel: {
+    display: 'flex' as const,
+    gap: 14,
+    overflowX: 'auto' as const,
+    paddingBottom: 8,
+    scrollSnapType: 'x mandatory' as const,
+  },
+  createNew: {
+    display: 'flex' as const,
+    alignItems: 'center' as const,
+    gap: 14,
+    background: 'rgba(255,255,255,0.04)',
+    border: '1px dashed rgba(255,255,255,0.15)',
+    borderRadius: 16,
+    padding: '16px 18px',
+    textDecoration: 'none',
+    cursor: 'pointer' as const,
+  },
+  footer: {
+    textAlign: 'center' as const,
+    padding: '0 20px',
+  },
+  footerText: {
+    color: 'rgba(255,255,255,0.2)',
+    fontSize: 11,
+    margin: '0 0 6px',
+  },
+  footerLink: {
+    color: 'rgba(255,255,255,0.3)',
+    fontSize: 12,
+    textDecoration: 'underline',
   },
 }
