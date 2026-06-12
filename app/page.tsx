@@ -1,27 +1,38 @@
 'use client'
 
 import React, { useEffect, useRef, useState } from 'react'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { Testimonials } from '@/components/Testimonials'
+import stickerSrc from '@/public/assets/sample_figurinha_web.png'
 
 /* Figurinha real gerada — mostra o modelo/produto como preview */
 function StickerImg({ size, fluid = false }: { size?: number; fluid?: boolean }) {
-  const w = fluid ? '100%' : size
-  const h = fluid ? undefined : (size ? Math.round(size * (1024 / 768)) : undefined)
+  const radius = size ? Math.round(size * 0.054) : 10
+  const shadow = '0 16px 48px rgba(0,0,0,0.42), 0 3px 12px rgba(0,0,0,0.22)'
+
+  if (fluid) {
+    return (
+      <Image
+        src={stickerSrc}
+        alt="Figurinha Copa 2026"
+        draggable={false}
+        placeholder="blur"
+        sizes="(max-width: 480px) 33vw, 200px"
+        style={{ width: '100%', height: 'auto', borderRadius: radius, boxShadow: shadow, display: 'block' }}
+      />
+    )
+  }
+
   return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src="/assets/sample_figurinha.png"
+    <Image
+      src={stickerSrc}
       alt="Figurinha Copa 2026"
       draggable={false}
-      style={{
-        width: w,
-        height: h,
-        objectFit: 'cover',
-        borderRadius: size ? Math.round(size * 0.054) : 10,
-        boxShadow: '0 16px 48px rgba(0,0,0,0.42), 0 3px 12px rgba(0,0,0,0.22)',
-        display: 'block',
-      }}
+      placeholder="blur"
+      width={size}
+      height={Math.round((size ?? 208) * (1067 / 800))}
+      style={{ borderRadius: radius, boxShadow: shadow, display: 'block' }}
     />
   )
 }
