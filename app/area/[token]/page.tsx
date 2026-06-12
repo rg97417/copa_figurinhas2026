@@ -21,12 +21,14 @@ export default async function AreaPage({ params }: Props) {
   try {
     const sb = getSupabaseAdmin()
 
-    // Primeiro: encontra o pedido pelo token
-    const { data: found } = await sb
+    // Primeiro: encontra o pedido pelo token (sem order_bump_products — pode não existir ainda)
+    const { data: found, error: findErr } = await sb
       .from('orders')
-      .select('id, paid, nome, dados_figurinha, created_at, download_token, sticker_path, order_bump_products, email')
+      .select('id, paid, nome, dados_figurinha, created_at, download_token, sticker_path, email')
       .eq('download_token', token)
       .single()
+
+    if (findErr) console.error('[area] find error:', findErr)
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     thisOrder = found as any
@@ -34,12 +36,27 @@ export default async function AreaPage({ params }: Props) {
     if (thisOrder && (thisOrder as unknown as { email: string | null }).email && thisOrder.paid) {
       // Busca todas as figurinhas pagas deste email
       const email = (thisOrder as unknown as { email: string }).email
-      const { data: allFound } = await sb
+
+      // Tenta com order_bump_products; se falhar (coluna não existe), busca sem
+      let allFound: unknown[] | null = null
+      const { data: withBump, error: bumpErr } = await sb
         .from('orders')
         .select('id, paid, nome, dados_figurinha, created_at, download_token, sticker_path, order_bump_products')
         .eq('email', email)
         .eq('paid', true)
         .order('created_at', { ascending: false })
+
+      if (!bumpErr) {
+        allFound = withBump as unknown[]
+      } else {
+        const { data: withoutBump } = await sb
+          .from('orders')
+          .select('id, paid, nome, dados_figurinha, created_at, download_token, sticker_path')
+          .eq('email', email)
+          .eq('paid', true)
+          .order('created_at', { ascending: false })
+        allFound = withoutBump as unknown[]
+      }
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       allOrders = (allFound as any[]) ?? []
