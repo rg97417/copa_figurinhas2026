@@ -1,8 +1,12 @@
 import { Resend } from 'resend'
 
-const resend = new Resend(process.env.RESEND_API_KEY!)
-
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? 'https://copa-figurinhas2026.vercel.app'
+
+function getResend() {
+  const key = process.env.RESEND_API_KEY
+  if (!key || key.startsWith('COLOQUE')) throw new Error('RESEND_API_KEY não configurada')
+  return new Resend(key)
+}
 
 export async function sendDownloadEmail(opts: {
   to: string
@@ -11,7 +15,7 @@ export async function sendDownloadEmail(opts: {
 }) {
   const link = `${BASE_URL}/area/${opts.token}`
 
-  await resend.emails.send({
+  await getResend().emails.send({
     from: 'Copa 2026 Figurinha <onboarding@resend.dev>',
     to: opts.to,
     subject: '🎽 Sua figurinha da Copa 2026 está pronta!',
