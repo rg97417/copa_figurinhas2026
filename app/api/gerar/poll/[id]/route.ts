@@ -1,20 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { retrieveImage } from '@/lib/imageCache'
+import { getSupabaseAdmin } from '@/lib/supabase'
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params
 
-    // Mock gerado pelo start/route.ts (OpenAI gpt-image-1)
-    // O base64 fica em cache em memória; o ID é um hash curto de 32 chars
+    // Imagem OpenAI salva no Supabase Storage (cross-Lambda safe)
     if (id.startsWith('mock_openai_')) {
-      const cacheId = id.replace('mock_openai_', '')
-      const b64 = retrieveImage(cacheId)
-      if (!b64) {
-        return NextResponse.json({ error: 'Imagem expirada ou não encontrada no cache' }, { status: 404 })
+      const tempId = id.replace('mock_openai_', '')
+      const sb = getSupabaseAdmin()
+      const { data: signed } = await sb.storage
+        .from('persons')
+        .createSignedUrl(`temp/${tempId}.png`, 300)
+      if (!signed?.signedUrl) {
+        return NextResponse.json({ error: 'Imagem expirada ou não encontrada' }, { status: 404 })
       }
-      const dataUrl = `data:image/png;base64,${b64}`
-      return NextResponse.json({ status: 'succeeded', output: dataUrl, error: null })
+      return NextResponse.json({ status: 'succeeded', output: signed.signedUrl, error: null })
     }
 
     // Mock legado: mock_vton_ (mantido por retrocompatibilidade)

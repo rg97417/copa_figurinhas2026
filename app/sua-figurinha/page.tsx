@@ -261,7 +261,7 @@ export default function SuaFigurinhaPage() {
                     marginBottom: 2,
                   }}
                 >
-                  R$ 19,90
+                  R$ 12,90
                 </div>
 
                 <div

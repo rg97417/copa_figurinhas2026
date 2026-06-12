@@ -3,10 +3,13 @@ import { compositeSticker } from '@/lib/pipeline/compositor'
 import { saveJob } from '@/lib/redis'
 import { getSupabaseAdmin, OrderRow } from '@/lib/supabase'
 
+export const maxDuration = 60
+
 const TRUSTED_HOSTS = [
   'replicate.delivery',
   'pbxt.replicate.delivery',
   'api.replicate.com',
+  'supabase.co',       // signed URLs do Supabase Storage
 ]
 
 function isTrustedImageUrl(url: string): boolean {
