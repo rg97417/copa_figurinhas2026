@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin, OrderRow } from '@/lib/supabase'
 import { sendDownloadEmail } from '@/lib/email'
+import { saveLastWebhook } from '@/lib/webhookLog'
 
 interface KiwifyOrderBump {
   product_id?: string
@@ -71,6 +72,9 @@ export async function POST(req: NextRequest) {
   } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
+
+  // Salva payload para inspeção (TTL 1h) — remover após validação
+  void saveLastWebhook(body)
 
   if (!validateSecret(req, body.token)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
