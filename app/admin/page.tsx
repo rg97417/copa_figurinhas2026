@@ -33,6 +33,15 @@ interface Metrics {
   pricePerSale: number
 }
 
+interface UTMStat {
+  source: string
+  medium: string
+  campaign: string
+  total: number
+  paid: number
+  revenue: number
+}
+
 function brl(v: number) {
   return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 }
@@ -61,8 +70,9 @@ const S: Record<string, React.CSSProperties> = {
 export default function AdminPage() {
   const [secret, setSecret]   = useState('')
   const [authed, setAuthed]   = useState(false)
-  const [orders, setOrders]   = useState<Order[]>([])
-  const [metrics, setMetrics] = useState<Metrics | null>(null)
+  const [orders, setOrders]     = useState<Order[]>([])
+  const [metrics, setMetrics]   = useState<Metrics | null>(null)
+  const [utmStats, setUtmStats] = useState<UTMStat[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError]     = useState('')
   const [downloading, setDownloading] = useState<string | null>(null)
@@ -77,6 +87,7 @@ export default function AdminPage() {
       const data = await res.json()
       setOrders(data.orders)
       setMetrics(data.metrics)
+      setUtmStats(data.utmStats ?? [])
       setAuthed(true)
     } finally { setLoading(false) }
   }, [secret])
@@ -172,6 +183,52 @@ export default function AdminPage() {
             <div style={S.sub}>receita − custo IA estimado</div>
           </div>
         </div>
+
+        {/* ── UTM Breakdown ── */}
+        {utmStats.length > 0 && (
+          <div style={{ ...S.card, marginBottom: 24 }}>
+            <div style={{ ...S.label, marginBottom: 12 }}>📊 Origem do Tráfego</div>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                <thead>
+                  <tr style={{ color: 'rgba(255,255,255,0.35)', textAlign: 'left' }}>
+                    <th style={{ padding: '4px 10px 8px 0', fontWeight: 700, letterSpacing: 0.8 }}>FONTE</th>
+                    <th style={{ padding: '4px 10px 8px 0', fontWeight: 700, letterSpacing: 0.8 }}>MEIO</th>
+                    <th style={{ padding: '4px 10px 8px 0', fontWeight: 700, letterSpacing: 0.8 }}>CAMPANHA</th>
+                    <th style={{ padding: '4px 10px 8px 0', fontWeight: 700, letterSpacing: 0.8, textAlign: 'right' }}>VISITAS</th>
+                    <th style={{ padding: '4px 10px 8px 0', fontWeight: 700, letterSpacing: 0.8, textAlign: 'right' }}>PAGOS</th>
+                    <th style={{ padding: '4px 10px 8px 0', fontWeight: 700, letterSpacing: 0.8, textAlign: 'right' }}>CONV.</th>
+                    <th style={{ padding: '4px 0 8px 0', fontWeight: 700, letterSpacing: 0.8, textAlign: 'right' }}>RECEITA</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {utmStats.map((row, i) => {
+                    const conv = row.total > 0 ? (row.paid / row.total * 100).toFixed(0) : '0'
+                    const isOrganic = row.source === 'orgânico'
+                    return (
+                      <tr key={i} style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                        <td style={{ padding: '7px 10px 7px 0', color: isOrganic ? 'rgba(255,255,255,0.35)' : '#22d3ee', fontWeight: 700 }}>
+                          {isOrganic ? '🌐' : '📣'} {row.source}
+                        </td>
+                        <td style={{ padding: '7px 10px 7px 0', color: 'rgba(255,255,255,0.5)' }}>{row.medium || '—'}</td>
+                        <td style={{ padding: '7px 10px 7px 0', color: 'rgba(255,255,255,0.4)', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {row.campaign || '—'}
+                        </td>
+                        <td style={{ padding: '7px 10px 7px 0', color: '#fff', textAlign: 'right', fontWeight: 700 }}>{row.total}</td>
+                        <td style={{ padding: '7px 10px 7px 0', color: '#4ade80', textAlign: 'right', fontWeight: 700 }}>{row.paid}</td>
+                        <td style={{ padding: '7px 10px 7px 0', textAlign: 'right', fontWeight: 700,
+                          color: Number(conv) >= 20 ? '#4ade80' : Number(conv) >= 10 ? '#FFD500' : '#fb923c' }}>
+                          {conv}%
+                        </td>
+                        <td style={{ padding: '7px 0 7px 0', color: '#4ade80', textAlign: 'right', fontWeight: 700 }}>{brl(row.revenue)}</td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
         {/* ── Filter tabs ── */}
         <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>

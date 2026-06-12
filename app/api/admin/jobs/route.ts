@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
 
   const { data: orders, error } = await sb
     .from('orders')
-    .select('id, email, nome, paid, paid_at, created_at, sticker_path, dados_figurinha, order_bump_products, download_token, job_id')
+    .select('id, email, nome, paid, paid_at, created_at, sticker_path, dados_figurinha, order_bump_products, download_token, job_id, utm_params')
     .order('created_at', { ascending: false })
     .limit(300)
 
@@ -36,6 +36,20 @@ export async function GET(req: NextRequest) {
   const conversion = total > 0 ? (paid / total) * 100 : 0
   const dlRate     = paid > 0 ? (downloaded / paid) * 100 : 0
 
+  // UTM breakdown por source/medium
+  const utmMap: Record<string, { source: string; medium: string; campaign: string; total: number; paid: number; revenue: number }> = {}
+  for (const o of list) {
+    const params = o.utm_params as Record<string, string> | null
+    const source   = params?.utm_source   ?? 'orgânico'
+    const medium   = params?.utm_medium   ?? ''
+    const campaign = params?.utm_campaign ?? ''
+    const key = `${source}|${medium}|${campaign}`
+    if (!utmMap[key]) utmMap[key] = { source, medium, campaign, total: 0, paid: 0, revenue: 0 }
+    utmMap[key].total++
+    if (o.paid) { utmMap[key].paid++; utmMap[key].revenue += PRICE_PER_SALE_BRL }
+  }
+  const utmStats = Object.values(utmMap).sort((a, b) => b.total - a.total)
+
   return NextResponse.json({
     orders: list,
     metrics: {
@@ -45,5 +59,6 @@ export async function GET(req: NextRequest) {
       costPerGen: COST_PER_GEN_BRL,
       pricePerSale: PRICE_PER_SALE_BRL,
     },
+    utmStats,
   })
 }
