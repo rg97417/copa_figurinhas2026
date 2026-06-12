@@ -1,6 +1,6 @@
 import { Resend } from 'resend'
 
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? 'https://convocakids.com'
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? 'https://www.convocakids.com'
 
 function getResend() {
   const key = process.env.RESEND_API_KEY

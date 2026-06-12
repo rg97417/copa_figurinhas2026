@@ -10,6 +10,13 @@ interface KiwifyOrderBump {
 }
 
 interface KiwifyPayload {
+  // Formato novo (payload real confirmado)
+  order_id?: string
+  order_status?: string
+  webhook_event_type?: string
+  Customer?: { email?: string; full_name?: string; first_name?: string; mobile?: string }
+  Product?: { product_id?: string; product_name?: string }
+  // Formato legado / aninhado
   event?: string
   token?: string
   data?: {
@@ -22,8 +29,6 @@ interface KiwifyPayload {
     buyer?: { email?: string; name?: string; cellphone?: string }
     product?: { id?: string; name?: string }
   }
-  order_id?: string
-  order_status?: string
   buyer_email?: string
   buyer_name?: string
   buyer_cellphone?: string
@@ -80,12 +85,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const event       = body.event ?? 'order_approved'
-  const orderId     = body.data?.order?.id     ?? body.order_id    ?? ''
-  const orderStatus = body.data?.order?.status ?? body.order_status ?? ''
-  const buyerEmail  = body.data?.buyer?.email  ?? body.buyer_email  ?? ''
-  const buyerName   = body.data?.buyer?.name   ?? body.buyer_name   ?? ''
-  const buyerPhone  = body.data?.buyer?.cellphone ?? body.buyer_cellphone ?? ''
+  // Suporta formato real (Customer.*) e formato legado (data.buyer.* / buyer_*)
+  const event       = body.webhook_event_type ?? body.event ?? 'order_approved'
+  const orderId     = body.order_id    ?? body.data?.order?.id     ?? ''
+  const orderStatus = body.order_status ?? body.data?.order?.status ?? ''
+  const buyerEmail  = body.Customer?.email      ?? body.data?.buyer?.email  ?? body.buyer_email  ?? ''
+  const buyerName   = body.Customer?.full_name  ?? body.data?.buyer?.name   ?? body.buyer_name   ?? ''
+  const buyerPhone  = body.Customer?.mobile     ?? body.data?.buyer?.cellphone ?? body.buyer_cellphone ?? ''
 
   const isPaid =
     event === 'order_approved' ||

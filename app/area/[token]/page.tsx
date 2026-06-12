@@ -18,7 +18,7 @@ interface AreaData {
   has_pdf: boolean
 }
 
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? 'https://convocakids.com'
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? 'https://www.convocakids.com'
 
 export default function AreaPage() {
   const params = useParams()
