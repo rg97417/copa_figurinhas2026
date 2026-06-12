@@ -13,6 +13,7 @@ export interface OrderRow {
   paid: boolean
   paid_at: string | null
   kiwify_order_id: string | null
+  order_bump_products: string[] | null
   created_at: string
 }
 

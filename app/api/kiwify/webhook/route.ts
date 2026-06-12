@@ -2,12 +2,24 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin, OrderRow } from '@/lib/supabase'
 import { sendDownloadEmail } from '@/lib/email'
 
+interface KiwifyOrderBump {
+  product_id?: string
+  product_name?: string
+  id?: string
+}
+
 interface KiwifyPayload {
   event?: string
   token?: string
   data?: {
-    order?: { id?: string; status?: string }
+    order?: {
+      id?: string
+      status?: string
+      order_bumps?: KiwifyOrderBump[]
+      order_bump?: KiwifyOrderBump | KiwifyOrderBump[]
+    }
     buyer?: { email?: string; name?: string; cellphone?: string }
+    product?: { id?: string; name?: string }
   }
   order_id?: string
   order_status?: string
@@ -22,13 +34,34 @@ function validateSecret(req: NextRequest, bodyToken?: string): boolean {
 
   const queryToken = req.nextUrl.searchParams.get('token')
   if (queryToken === secret) return true
-
   if (bodyToken && bodyToken === secret) return true
 
   const authHeader = req.headers.get('authorization') ?? ''
   if (authHeader === `Bearer ${secret}` || authHeader === secret) return true
 
   return false
+}
+
+function extractOrderBumpProductIds(payload: KiwifyPayload): string[] {
+  const order = payload.data?.order
+  if (!order) return []
+
+  const ids: string[] = []
+
+  // Kiwify pode enviar como array "order_bumps" ou campo singular "order_bump"
+  const bumps: KiwifyOrderBump[] = []
+  if (Array.isArray(order.order_bumps)) bumps.push(...order.order_bumps)
+  if (order.order_bump) {
+    if (Array.isArray(order.order_bump)) bumps.push(...order.order_bump)
+    else bumps.push(order.order_bump)
+  }
+
+  for (const bump of bumps) {
+    const pid = bump.product_id ?? bump.id
+    if (pid) ids.push(pid)
+  }
+
+  return ids
 }
 
 export async function POST(req: NextRequest) {
@@ -44,11 +77,11 @@ export async function POST(req: NextRequest) {
   }
 
   const event       = body.event ?? 'order_approved'
-  const orderId     = body.data?.order?.id       ?? body.order_id    ?? ''
-  const orderStatus = body.data?.order?.status   ?? body.order_status ?? ''
-  const buyerEmail  = body.data?.buyer?.email    ?? body.buyer_email  ?? ''
-  const buyerName   = body.data?.buyer?.name     ?? body.buyer_name   ?? ''
-  const buyerPhone  = body.data?.buyer?.cellphone ?? ''
+  const orderId     = body.data?.order?.id     ?? body.order_id    ?? ''
+  const orderStatus = body.data?.order?.status ?? body.order_status ?? ''
+  const buyerEmail  = body.data?.buyer?.email  ?? body.buyer_email  ?? ''
+  const buyerName   = body.data?.buyer?.name   ?? body.buyer_name   ?? ''
+  const buyerPhone  = body.data?.buyer?.cellphone ?? body.buyer_cellphone ?? ''
 
   const isPaid =
     event === 'order_approved' ||
@@ -64,6 +97,8 @@ export async function POST(req: NextRequest) {
     console.error('[kiwify/webhook] email do comprador ausente', body)
     return NextResponse.json({ error: 'buyer email missing' }, { status: 422 })
   }
+
+  const orderBumpProductIds = extractOrderBumpProductIds(body)
 
   const sb = getSupabaseAdmin()
 
@@ -94,9 +129,10 @@ export async function POST(req: NextRequest) {
     .update({
       paid: true,
       paid_at: new Date().toISOString(),
-      kiwify_order_id: orderId   || null,
-      nome:  order.nome          ?? buyerName  ?? null,
-      phone: buyerPhone          || null,
+      kiwify_order_id: orderId || null,
+      nome:  order.nome ?? buyerName ?? null,
+      phone: buyerPhone || null,
+      order_bump_products: orderBumpProductIds.length > 0 ? orderBumpProductIds : [],
     } as Partial<OrderRow>)
     .eq('id', order.id)
 
@@ -110,6 +146,7 @@ export async function POST(req: NextRequest) {
       to: buyerEmail,
       nome: order.nome ?? buyerName ?? 'Torcedor(a)',
       token: order.download_token,
+      hasPdf: orderBumpProductIds.length > 0,
     })
   } catch (emailErr) {
     console.error('[kiwify/webhook] email error:', emailErr)

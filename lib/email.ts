@@ -12,9 +12,13 @@ export async function sendDownloadEmail(opts: {
   to: string
   nome: string
   token: string
+  hasPdf?: boolean
 }) {
   const link = `${BASE_URL}/area/${opts.token}`
   const primeiroNome = opts.nome.split(' ')[0]
+  const pdfLine = opts.hasPdf
+    ? `<tr><td style="padding:6px 0;color:rgba(255,255,255,0.7);font-size:13px;">✅&nbsp; PDF Guia de Impressão incluído</td></tr>`
+    : ''
 
   await getResend().emails.send({
     from: 'Copa 2026 Figurinha <onboarding@resend.dev>',
@@ -85,6 +89,7 @@ export async function sendDownloadEmail(opts: {
                     <tr>
                       <td style="padding:6px 0;color:rgba(255,255,255,0.7);font-size:13px;">✅&nbsp; Funciona no celular e computador</td>
                     </tr>
+                    ${pdfLine}
                   </table>
                 </td>
               </tr>
