@@ -169,7 +169,8 @@ export async function GET(
   const nome = order.nome ?? 'Figurinha'
   const pdfBytes = await buildPdf(stickerPng, nome)
 
-  const filename = `${nome.replace(/\s+/g, '_')}_Copa2026.pdf`
+  const safeNome = nome.replace(/[^\w\s-]/g, '').replace(/\s+/g, '_').slice(0, 60)
+  const filename = `${safeNome}_Copa2026.pdf`
 
   return new NextResponse(Buffer.from(pdfBytes), {
     status: 200,

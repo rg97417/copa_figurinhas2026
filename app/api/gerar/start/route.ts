@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import OpenAI, { toFile } from 'openai'
 import { storeImage } from '@/lib/imageCache'
+import { rateLimit } from '@/lib/rateLimit'
 import fs from 'fs'
 import path from 'path'
 
@@ -17,6 +18,12 @@ const PROMPT =
 
 export async function POST(req: NextRequest) {
   try {
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0].trim() ?? 'unknown'
+    const allowed = await rateLimit(`start:${ip}`, 5, 3600)
+    if (!allowed) {
+      return NextResponse.json({ error: 'Muitas tentativas. Tente novamente em 1 hora.' }, { status: 429 })
+    }
+
     const formData = await req.formData()
     const photo = formData.get('photo') as File | null
     if (!photo) return NextResponse.json({ error: 'Foto obrigatória' }, { status: 400 })

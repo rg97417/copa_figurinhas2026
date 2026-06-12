@@ -25,9 +25,16 @@ function purgeExpired(cache: Map<string, CacheEntry>) {
   }
 }
 
+const MAX_ENTRIES = 100
+
 export function storeImage(b64: string): string {
   const cache = getCache()
   purgeExpired(cache)
+  // Evict oldest entries if at capacity
+  if (cache.size >= MAX_ENTRIES) {
+    const oldest = cache.keys().next().value
+    if (oldest) cache.delete(oldest)
+  }
   const id = randomBytes(16).toString('hex')
   cache.set(id, { b64, expiresAt: Date.now() + 30 * 60 * 1000 }) // 30 min
   return id

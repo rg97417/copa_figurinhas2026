@@ -3,6 +3,21 @@ import { compositeSticker } from '@/lib/pipeline/compositor'
 import { saveJob } from '@/lib/redis'
 import { getSupabaseAdmin, OrderRow } from '@/lib/supabase'
 
+const TRUSTED_HOSTS = [
+  'replicate.delivery',
+  'pbxt.replicate.delivery',
+  'api.replicate.com',
+]
+
+function isTrustedImageUrl(url: string): boolean {
+  if (url.startsWith('data:image/')) return true
+  try {
+    const { hostname, protocol } = new URL(url)
+    if (protocol !== 'https:') return false
+    return TRUSTED_HOSTS.some(h => hostname === h || hostname.endsWith(`.${h}`))
+  } catch { return false }
+}
+
 async function ensureBuckets() {
   const sb = getSupabaseAdmin()
   const buckets = ['persons', 'stickers']
@@ -21,6 +36,9 @@ export async function POST(req: NextRequest) {
   try {
     const { rembgUrl, nome, email, data, altura, peso, clube } = await req.json()
     if (!rembgUrl) return NextResponse.json({ error: 'rembgUrl obrigatório' }, { status: 400 })
+    if (!isTrustedImageUrl(rembgUrl)) {
+      return NextResponse.json({ error: 'URL de imagem inválida' }, { status: 400 })
+    }
 
     const imgRes = await fetch(rembgUrl)
     if (!imgRes.ok) throw new Error('Falha ao baixar imagem processada')

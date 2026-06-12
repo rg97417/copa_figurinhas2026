@@ -77,12 +77,12 @@ export async function GET(
     console.warn('[download] cache error:', cacheErr)
   }
 
-  const nome = order.nome ?? 'figurinha'
+  const nome = (order.nome ?? 'figurinha').replace(/[^\w\s-]/g, '').replace(/\s+/g, '_').slice(0, 60)
   return new NextResponse(new Uint8Array(stickerPng), {
     status: 200,
     headers: {
       'Content-Type': 'image/png',
-      'Content-Disposition': `attachment; filename="${nome.replace(/\s+/g, '_')}_Copa2026.png"`,
+      'Content-Disposition': `attachment; filename="${nome}_Copa2026.png"`,
       'Cache-Control': 'no-store',
     },
   })
