@@ -10,14 +10,29 @@ interface KiwifyOrderBump {
   id?: string
 }
 
-interface KiwifyPayload {
-  // Formato novo (payload real confirmado)
+interface KiwifyOrderData {
   order_id?: string
   order_status?: string
   webhook_event_type?: string
   Customer?: { email?: string; full_name?: string; first_name?: string; mobile?: string }
   Product?: { product_id?: string; product_name?: string }
-  // Formato legado / aninhado
+  TrackingParameters?: Record<string, string>
+  order_bumps?: KiwifyOrderBump[]
+  order_bump?: KiwifyOrderBump | KiwifyOrderBump[]
+}
+
+interface KiwifyPayload {
+  // Formato real Kiwify: tudo aninhado sob "order"
+  order?: KiwifyOrderData
+  url?: string
+  signature?: string
+  // Formato flat (legado / testes)
+  order_id?: string
+  order_status?: string
+  webhook_event_type?: string
+  Customer?: { email?: string; full_name?: string; first_name?: string; mobile?: string }
+  TrackingParameters?: Record<string, string>
+  // Formato muito antigo
   event?: string
   token?: string
   data?: {
@@ -33,7 +48,6 @@ interface KiwifyPayload {
   buyer_email?: string
   buyer_name?: string
   buyer_cellphone?: string
-  TrackingParameters?: Record<string, string>
 }
 
 function validateSecret(req: NextRequest, bodyToken?: string): boolean {
@@ -54,17 +68,17 @@ function validateSecret(req: NextRequest, bodyToken?: string): boolean {
 }
 
 function extractOrderBumpProductIds(payload: KiwifyPayload): string[] {
-  const order = payload.data?.order
-  if (!order) return []
+  // Kiwify real: body.order.order_bumps; legado: body.data.order.order_bumps
+  const orderData: { order_bumps?: KiwifyOrderBump[]; order_bump?: KiwifyOrderBump | KiwifyOrderBump[] } | undefined =
+    payload.order ?? payload.data?.order
+  if (!orderData) return []
 
   const ids: string[] = []
-
-  // Kiwify pode enviar como array "order_bumps" ou campo singular "order_bump"
   const bumps: KiwifyOrderBump[] = []
-  if (Array.isArray(order.order_bumps)) bumps.push(...order.order_bumps)
-  if (order.order_bump) {
-    if (Array.isArray(order.order_bump)) bumps.push(...order.order_bump)
-    else bumps.push(order.order_bump)
+  if (Array.isArray(orderData.order_bumps)) bumps.push(...orderData.order_bumps)
+  if (orderData.order_bump) {
+    if (Array.isArray(orderData.order_bump)) bumps.push(...orderData.order_bump)
+    else bumps.push(orderData.order_bump)
   }
 
   for (const bump of bumps) {
@@ -90,13 +104,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  // Suporta formato real (Customer.*) e formato legado (data.buyer.* / buyer_*)
-  const event       = body.webhook_event_type ?? body.event ?? 'order_approved'
-  const orderId     = body.order_id    ?? body.data?.order?.id     ?? ''
-  const orderStatus = body.order_status ?? body.data?.order?.status ?? ''
-  const buyerEmail  = body.Customer?.email      ?? body.data?.buyer?.email  ?? body.buyer_email  ?? ''
-  const buyerName   = body.Customer?.full_name  ?? body.data?.buyer?.name   ?? body.buyer_name   ?? ''
-  const buyerPhone  = body.Customer?.mobile     ?? body.data?.buyer?.cellphone ?? body.buyer_cellphone ?? ''
+  // Kiwify real envia tudo sob body.order; formatos legados são flat
+  const od = body.order ?? body
+
+  const event       = od.webhook_event_type ?? body.event ?? 'order_approved'
+  const orderId     = od.order_id    ?? body.data?.order?.id     ?? ''
+  const orderStatus = od.order_status ?? body.data?.order?.status ?? ''
+  const buyerEmail  = od.Customer?.email      ?? body.data?.buyer?.email  ?? body.buyer_email  ?? ''
+  const buyerName   = od.Customer?.full_name  ?? body.data?.buyer?.name   ?? body.buyer_name   ?? ''
+  const buyerPhone  = od.Customer?.mobile     ?? body.data?.buyer?.cellphone ?? body.buyer_cellphone ?? ''
+
+  console.log('[kiwify/webhook] event:', event, 'status:', orderStatus, 'email:', buyerEmail)
 
   const isPaid =
     event === 'order_approved' ||
@@ -109,13 +127,13 @@ export async function POST(req: NextRequest) {
   }
 
   if (!buyerEmail) {
-    console.error('[kiwify/webhook] email do comprador ausente', body)
+    console.error('[kiwify/webhook] email do comprador ausente', JSON.stringify(body).slice(0, 500))
     return NextResponse.json({ error: 'buyer email missing' }, { status: 422 })
   }
 
   const orderBumpProductIds = extractOrderBumpProductIds(body)
-  const tracking = body.TrackingParameters && Object.keys(body.TrackingParameters).length > 0
-    ? body.TrackingParameters
+  const tracking = od.TrackingParameters && Object.keys(od.TrackingParameters).length > 0
+    ? od.TrackingParameters
     : null
   const utmParams = tracking
   // job_id passado pelo checkout para matching exato — evita que email errado vincule pedido errado
