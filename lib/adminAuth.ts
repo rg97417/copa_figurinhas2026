@@ -18,8 +18,10 @@ export async function checkAdminAuth(req: NextRequest): Promise<NextResponse | n
 
   const secret = req.headers.get('x-admin-secret')
   if (secret !== process.env.ADMIN_SECRET) {
-    // Camada 2 — brute-force do segredo: 10 tentativas erradas/hora → bloqueia
-    await rateLimit(`admin-fail:${ip}`, 10, 3600)
+    // Camada 2 — brute-force: após 10 erros/hora o IP recebe 429 em vez de 401
+    if (!(await rateLimit(`admin-fail:${ip}`, 10, 3600))) {
+      return NextResponse.json({ error: 'IP bloqueado por tentativas inválidas' }, { status: 429 })
+    }
     return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
   }
 
