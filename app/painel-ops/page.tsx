@@ -253,6 +253,20 @@ export default function AdminPage() {
             <div key={order.id} style={{ ...S.card, display: 'flex', alignItems: 'center', gap: 12,
               borderLeft: `3px solid ${order.paid ? '#4ade80' : '#fb923c'}` }}>
 
+              {/* Thumbnail */}
+              {order.paid && order.download_token ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={`/api/og/${order.download_token}`}
+                  alt={order.nome ?? ''}
+                  style={{ width: 48, height: 64, objectFit: 'cover', borderRadius: 6, flexShrink: 0, background: 'rgba(255,255,255,0.05)' }}
+                />
+              ) : (
+                <div style={{ width: 48, height: 64, borderRadius: 6, flexShrink: 0, background: 'rgba(255,255,255,0.04)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>
+                  ⚽
+                </div>
+              )}
+
               {/* Info */}
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>

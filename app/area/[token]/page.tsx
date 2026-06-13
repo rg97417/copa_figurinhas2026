@@ -222,21 +222,14 @@ function StickerCard({
 
   return (
     <div style={{ ...(compact ? s.cardCompact : s.card) }}>
-      {/* Preview */}
+      {/* Preview — usa /api/og/ que gera on-demand e cacheia no Storage */}
       <div style={compact ? s.previewCompact : s.preview}>
-        {order.preview_url ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={order.preview_url}
-            alt={nome}
-            style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: compact ? 12 : 16 }}
-          />
-        ) : (
-          <div style={s.previewPlaceholder}>
-            <span style={{ fontSize: compact ? 36 : 56 }}>⚽</span>
-            <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: 12, marginTop: 8 }}>Pronto para baixar</span>
-          </div>
-        )}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={order.preview_url ?? `/api/og/${order.download_token}`}
+          alt={nome}
+          style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: compact ? 12 : 16 }}
+        />
         {/* Glow de fundo */}
         <div style={compact ? s.glowCompact : s.glow} />
       </div>
