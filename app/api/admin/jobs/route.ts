@@ -1,15 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase'
+import { checkAdminAuth } from '@/lib/adminAuth'
 
 // Custos estimados por geração (OpenAI gpt-image-2 + Replicate rembg em BRL)
 const COST_PER_GEN_BRL  = 0.25
 const PRICE_PER_SALE_BRL = 19.90
 
 export async function GET(req: NextRequest) {
-  const secret = req.headers.get('x-admin-secret')
-  if (secret !== process.env.ADMIN_SECRET) {
-    return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
-  }
+  const authErr = await checkAdminAuth(req)
+  if (authErr) return authErr
 
   const sb = getSupabaseAdmin()
 

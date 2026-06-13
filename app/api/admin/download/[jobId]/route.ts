@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getJob, markPaid } from '@/lib/redis'
 import { compositeSticker } from '@/lib/pipeline/compositor'
+import { checkAdminAuth } from '@/lib/adminAuth'
 
 export const maxDuration = 60
 
@@ -44,10 +45,8 @@ async function upscale4K(pngBuffer: Buffer): Promise<Buffer> {
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ jobId: string }> }) {
   try {
-    const secret = req.headers.get('x-admin-secret')
-    if (secret !== process.env.ADMIN_SECRET) {
-      return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
-    }
+    const authErr = await checkAdminAuth(req)
+    if (authErr) return authErr
 
     const { jobId } = await params
     const job = await getJob(jobId)
