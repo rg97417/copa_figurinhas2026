@@ -554,9 +554,19 @@ export default function CriarPage() {
                   {errors.email && (
                     <p style={{ color: '#E53E3E', fontSize: 12.5, marginTop: 5, fontWeight: 600 }}>⚠ {errors.email}</p>
                   )}
-                  <p style={{ fontSize: 11.5, color: 'rgba(13,27,75,0.4)', marginTop: 5, fontWeight: 500 }}>
-                    📩 Você recebe o arquivo aqui após o pagamento
-                  </p>
+                  <div
+                    style={{
+                      marginTop: 8,
+                      padding: '8px 12px',
+                      borderRadius: 10,
+                      background: 'rgba(255, 213, 0, 0.12)',
+                      border: '1px solid rgba(255, 213, 0, 0.35)',
+                    }}
+                  >
+                    <p style={{ fontSize: 12, color: '#7A5C00', fontWeight: 700, margin: 0, lineHeight: 1.5 }}>
+                      ⚠️ Use o mesmo e-mail na hora do pagamento para receber sua figurinha.
+                    </p>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
