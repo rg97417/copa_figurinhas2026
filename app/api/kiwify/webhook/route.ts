@@ -17,6 +17,9 @@ interface KiwifyOrderData {
   Customer?: { email?: string; full_name?: string; first_name?: string; mobile?: string }
   Product?: { product_id?: string; product_name?: string }
   TrackingParameters?: Record<string, string>
+  // Kiwify usa PascalCase para objetos aninhados
+  OrderBumps?: KiwifyOrderBump[]
+  // Alternativas snake_case (outros formatos)
   order_bumps?: KiwifyOrderBump[]
   order_bump?: KiwifyOrderBump | KiwifyOrderBump[]
 }
@@ -68,13 +71,15 @@ function validateSecret(req: NextRequest, bodyToken?: string): boolean {
 }
 
 function extractOrderBumpProductIds(payload: KiwifyPayload): string[] {
-  // Kiwify real: body.order.order_bumps; legado: body.data.order.order_bumps
-  const orderData: { order_bumps?: KiwifyOrderBump[]; order_bump?: KiwifyOrderBump | KiwifyOrderBump[] } | undefined =
-    payload.order ?? payload.data?.order
+  const orderData = payload.order ?? payload.data?.order
   if (!orderData) return []
 
   const ids: string[] = []
   const bumps: KiwifyOrderBump[] = []
+
+  // PascalCase (formato Kiwify real)
+  if (Array.isArray(orderData.OrderBumps)) bumps.push(...orderData.OrderBumps)
+  // snake_case (alternativas)
   if (Array.isArray(orderData.order_bumps)) bumps.push(...orderData.order_bumps)
   if (orderData.order_bump) {
     if (Array.isArray(orderData.order_bump)) bumps.push(...orderData.order_bump)
@@ -83,7 +88,7 @@ function extractOrderBumpProductIds(payload: KiwifyPayload): string[] {
 
   for (const bump of bumps) {
     const pid = bump.product_id ?? bump.id
-    if (pid) ids.push(pid)
+    if (pid && !ids.includes(pid)) ids.push(pid)
   }
 
   return ids
@@ -179,6 +184,42 @@ export async function POST(req: NextRequest) {
   }
 
   if (!order) {
+    // Nenhum pedido unpaid — pode ser segundo webhook separado do order bump
+    // Kiwify envia um webhook por produto: 1 para o main, 1 para o bump
+    const bumpProductId = od.Product?.product_id ?? null
+    if (bumpProductId) {
+      const { data: paidList } = await sb
+        .from('orders')
+        .select('id, nome, download_token, order_bump_products')
+        .eq('email', buyerEmail.toLowerCase().trim())
+        .eq('paid', true)
+        .order('paid_at', { ascending: false })
+        .limit(1)
+
+      const paidOrder = (paidList as (Pick<OrderRow, 'id' | 'nome' | 'download_token'> & { order_bump_products: string[] })[] | null)?.[0] ?? null
+      if (paidOrder) {
+        const existing: string[] = paidOrder.order_bump_products ?? []
+        if (!existing.includes(bumpProductId)) {
+          await sb.from('orders')
+            .update({ order_bump_products: [...existing, bumpProductId] } as Partial<OrderRow>)
+            .eq('id', paidOrder.id)
+          console.log('[kiwify/webhook] order bump adicionado:', bumpProductId, '→ order', paidOrder.id)
+          try {
+            await sendDownloadEmail({
+              to: buyerEmail,
+              nome: paidOrder.nome ?? buyerName ?? 'Torcedor(a)',
+              token: paidOrder.download_token,
+              hasPdf: true,
+            })
+          } catch (emailErr) {
+            console.error('[kiwify/webhook] email bump error:', emailErr)
+          }
+          return NextResponse.json({ received: true, order_bump_added: true, order_id: paidOrder.id })
+        }
+        return NextResponse.json({ received: true, order_bump_already_set: true })
+      }
+    }
+
     console.warn('[kiwify/webhook] pedido nao encontrado. email:', buyerEmail, 'job_id:', trackingJobId)
     return NextResponse.json({ received: true, order_not_found: true })
   }
