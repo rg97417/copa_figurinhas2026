@@ -14,6 +14,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     // Imagem OpenAI salva no Supabase Storage (cross-Lambda safe)
     if (id.startsWith('mock_openai_')) {
       const tempId = id.replace('mock_openai_', '')
+      // Valida: deve ser exatamente 32 hex chars (randomBytes(16).toString('hex'))
+      if (!/^[a-f0-9]{32}$/.test(tempId)) {
+        return NextResponse.json({ error: 'ID inválido' }, { status: 400 })
+      }
       const sb = getSupabaseAdmin()
       const { data: signed } = await sb.storage
         .from('persons')
@@ -31,7 +35,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       return NextResponse.json({ status: 'succeeded', output: decodedUrl, error: null })
     }
 
-    // Replicate polling (rembg e outros)
+    // Replicate polling — valida formato do ID antes de chamar a API
+    if (!/^[a-zA-Z0-9]{10,40}$/.test(id)) {
+      return NextResponse.json({ error: 'ID inválido' }, { status: 400 })
+    }
     const res = await fetch(`https://api.replicate.com/v1/predictions/${id}`, {
       headers: { Authorization: `Bearer ${process.env.REPLICATE_API_KEY!}` },
     })

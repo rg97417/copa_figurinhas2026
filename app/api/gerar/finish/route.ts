@@ -22,20 +22,6 @@ function isTrustedImageUrl(url: string): boolean {
   } catch { return false }
 }
 
-async function ensureBuckets() {
-  const sb = getSupabaseAdmin()
-  const buckets = ['persons', 'stickers']
-  for (const name of buckets) {
-    const { error } = await sb.storage.createBucket(name, {
-      public: false,
-      fileSizeLimit: 10_000_000,
-    })
-    if (error && !error.message.includes('already exists')) {
-      console.warn('[finish] bucket create warn:', error.message)
-    }
-  }
-}
-
 function cap(v: unknown, max = 100): string {
   return typeof v === 'string' ? v.slice(0, max) : ''
 }
@@ -75,7 +61,6 @@ export async function POST(req: NextRequest) {
 
     try {
       const sb = getSupabaseAdmin()
-      await ensureBuckets()
 
       const storagePath = `persons/${jobId}.png`
       await sb.storage

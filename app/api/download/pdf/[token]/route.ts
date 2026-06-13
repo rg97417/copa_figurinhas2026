@@ -4,6 +4,8 @@ import { compositeSticker } from '@/lib/pipeline/compositor'
 import { PDFDocument, rgb } from 'pdf-lib'
 import { rateLimit } from '@/lib/rateLimit'
 
+export const maxDuration = 60
+
 // A4 em pontos (72 dpi): 595.28 × 841.89
 const A4_W = 595.28
 const A4_H = 841.89

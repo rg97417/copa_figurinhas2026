@@ -13,6 +13,8 @@ async function redisCmd(...parts: string[]): Promise<unknown> {
 
 // Returns true = allowed, false = rate limited.
 // Falls through (returns true) if Redis is unavailable.
+// Uses pipeline (INCR + EXPIRE in one round-trip) to avoid the race where
+// INCR succeeds but EXPIRE never runs (key stuck without TTL forever).
 export async function rateLimit(
   identifier: string,
   max: number,
@@ -21,8 +23,22 @@ export async function rateLimit(
   if (!REDIS_URL()) return true
   try {
     const key = `rl:${identifier}`
-    const count = (await redisCmd('incr', key)) as number
-    if (count === 1) await redisCmd('expire', key, String(windowSeconds))
+    // Upstash pipeline: POST /pipeline with array of commands — atomic round-trip
+    const url = `${REDIS_URL()}/pipeline`
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${REDIS_TOKEN()}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify([
+        ['INCR', key],
+        ['EXPIRE', key, windowSeconds, 'NX'], // NX = só seta TTL se ainda não tem
+      ]),
+      cache: 'no-store',
+    })
+    const results = await res.json() as Array<{ result: unknown }>
+    const count = results[0]?.result as number
     return count <= max
   } catch {
     return true
