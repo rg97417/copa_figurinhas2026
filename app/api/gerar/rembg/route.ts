@@ -3,6 +3,16 @@ import { rateLimit } from '@/lib/rateLimit'
 
 const REMBG_VERSION = 'fb8af171cfa1616ddcf1242c093f9c46bcada5ad4cf6f2fbe8b81b330ec5c003'
 
+const TRUSTED_HOSTS = ['replicate.delivery', 'pbxt.replicate.delivery', 'api.replicate.com', 'supabase.co']
+
+function isTrustedUrl(url: string): boolean {
+  try {
+    const { hostname, protocol } = new URL(url)
+    if (protocol !== 'https:') return false
+    return TRUSTED_HOSTS.some(h => hostname === h || hostname.endsWith(`.${h}`))
+  } catch { return false }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const ip = req.headers.get('x-forwarded-for')?.split(',')[0].trim() ?? 'unknown'
@@ -13,6 +23,9 @@ export async function POST(req: NextRequest) {
 
     const { imageUrl } = await req.json()
     if (!imageUrl) return NextResponse.json({ error: 'imageUrl obrigatório' }, { status: 400 })
+    if (!isTrustedUrl(imageUrl)) {
+      return NextResponse.json({ error: 'URL de imagem inválida' }, { status: 400 })
+    }
 
     const res = await fetch('https://api.replicate.com/v1/predictions', {
       method: 'POST',

@@ -114,33 +114,56 @@ export async function POST(req: NextRequest) {
   }
 
   const orderBumpProductIds = extractOrderBumpProductIds(body)
-  const utmParams = body.TrackingParameters && Object.keys(body.TrackingParameters).length > 0
+  const tracking = body.TrackingParameters && Object.keys(body.TrackingParameters).length > 0
     ? body.TrackingParameters
     : null
+  const utmParams = tracking
+  // job_id passado pelo checkout para matching exato — evita que email errado vincule pedido errado
+  const trackingJobId = tracking?.job_id ?? null
 
   const sb = getSupabaseAdmin()
 
-  const { data: rawOrders, error: findErr } = await sb
-    .from('orders')
-    .select('id, nome, download_token, paid')
-    .eq('email', buyerEmail.toLowerCase().trim())
-    .eq('paid', false)
-    .order('created_at', { ascending: false })
-    .limit(1)
+  let order: Pick<OrderRow, 'id' | 'nome' | 'download_token' | 'paid'> | null = null
 
-  if (findErr) {
-    console.error('[kiwify/webhook] find error:', findErr)
-    return NextResponse.json({ error: 'DB error' }, { status: 500 })
+  // Matching primário: job_id exato (garante que comprador recebe SEMPRE sua figurinha)
+  if (trackingJobId) {
+    const { data, error } = await sb
+      .from('orders')
+      .select('id, nome, download_token, paid')
+      .eq('job_id', trackingJobId)
+      .eq('paid', false)
+      .single()
+    if (error && error.code !== 'PGRST116') {
+      console.error('[kiwify/webhook] find by job_id error:', error)
+    }
+    order = data as Pick<OrderRow, 'id' | 'nome' | 'download_token' | 'paid'> | null
+    if (order) console.log('[kiwify/webhook] matched by job_id:', trackingJobId)
   }
 
-  const orders = rawOrders as Pick<OrderRow, 'id' | 'nome' | 'download_token' | 'paid'>[] | null
+  // Fallback: email + mais recente não pago (compra sem job_id, ex: link direto)
+  if (!order) {
+    const { data: rawOrders, error: findErr } = await sb
+      .from('orders')
+      .select('id, nome, download_token, paid')
+      .eq('email', buyerEmail.toLowerCase().trim())
+      .eq('paid', false)
+      .order('created_at', { ascending: false })
+      .limit(1)
 
-  if (!orders || orders.length === 0) {
-    console.warn('[kiwify/webhook] pedido nao encontrado para email:', buyerEmail)
+    if (findErr) {
+      console.error('[kiwify/webhook] find error:', findErr)
+      return NextResponse.json({ error: 'DB error' }, { status: 500 })
+    }
+
+    const list = rawOrders as Pick<OrderRow, 'id' | 'nome' | 'download_token' | 'paid'>[] | null
+    order = list?.[0] ?? null
+    if (order) console.log('[kiwify/webhook] matched by email fallback:', buyerEmail)
+  }
+
+  if (!order) {
+    console.warn('[kiwify/webhook] pedido nao encontrado. email:', buyerEmail, 'job_id:', trackingJobId)
     return NextResponse.json({ received: true, order_not_found: true })
   }
-
-  const order = orders[0]
 
   const { error: updateErr } = await sb
     .from('orders')

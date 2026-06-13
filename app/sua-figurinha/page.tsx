@@ -108,8 +108,15 @@ export default function SuaFigurinhaPage() {
 
   const handleCheckout = useCallback(() => {
     pixelEvent('InitiateCheckout', { value: 19.90, currency: 'BRL', num_items: 1 })
-    window.location.href = appendUTMToUrl(CHECKOUT_BASE, readUTM())
-  }, [])
+    let url = appendUTMToUrl(CHECKOUT_BASE, readUTM())
+    // job_id garante que o webhook vincule EXATAMENTE este pedido ao pagamento
+    if (store.jobId) {
+      const u = new URL(url)
+      u.searchParams.set('job_id', store.jobId)
+      url = u.toString()
+    }
+    window.location.href = url
+  }, [store.jobId])
 
   if (!store.name) return null
 

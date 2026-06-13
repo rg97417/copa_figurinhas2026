@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase'
+import { rateLimit } from '@/lib/rateLimit'
 
-export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0].trim() ?? 'anon'
+    if (!(await rateLimit(`poll:${ip}`, 120, 3600))) {
+      return NextResponse.json({ error: 'Muitas tentativas' }, { status: 429 })
+    }
+
     const { id } = await params
 
     // Imagem OpenAI salva no Supabase Storage (cross-Lambda safe)
