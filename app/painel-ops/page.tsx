@@ -37,6 +37,8 @@ interface UTMStat {
   source: string
   medium: string
   campaign: string
+  adset: string
+  ad: string
   total: number
   paid: number
   revenue: number
@@ -210,6 +212,8 @@ export default function AdminPage() {
                     <th style={{ padding: '4px 10px 8px 0', fontWeight: 700, letterSpacing: 0.8 }}>FONTE</th>
                     <th style={{ padding: '4px 10px 8px 0', fontWeight: 700, letterSpacing: 0.8 }}>MEIO</th>
                     <th style={{ padding: '4px 10px 8px 0', fontWeight: 700, letterSpacing: 0.8 }}>CAMPANHA</th>
+                    <th style={{ padding: '4px 10px 8px 0', fontWeight: 700, letterSpacing: 0.8 }}>AD SET</th>
+                    <th style={{ padding: '4px 10px 8px 0', fontWeight: 700, letterSpacing: 0.8 }}>ANÚNCIO</th>
                     <th style={{ padding: '4px 10px 8px 0', fontWeight: 700, letterSpacing: 0.8, textAlign: 'right' }}>VISITAS</th>
                     <th style={{ padding: '4px 10px 8px 0', fontWeight: 700, letterSpacing: 0.8, textAlign: 'right' }}>PAGOS</th>
                     <th style={{ padding: '4px 10px 8px 0', fontWeight: 700, letterSpacing: 0.8, textAlign: 'right' }}>CONV.</th>
@@ -226,8 +230,14 @@ export default function AdminPage() {
                           {isOrganic ? '🌐' : '📣'} {row.source}
                         </td>
                         <td style={{ padding: '7px 10px 7px 0', color: 'rgba(255,255,255,0.5)' }}>{row.medium || '—'}</td>
-                        <td style={{ padding: '7px 10px 7px 0', color: 'rgba(255,255,255,0.4)', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <td style={{ padding: '7px 10px 7px 0', color: 'rgba(255,255,255,0.4)', maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={row.campaign}>
                           {row.campaign || '—'}
+                        </td>
+                        <td style={{ padding: '7px 10px 7px 0', color: 'rgba(255,255,255,0.4)', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={row.adset}>
+                          {row.adset || '—'}
+                        </td>
+                        <td style={{ padding: '7px 10px 7px 0', color: 'rgba(255,255,255,0.4)', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={row.ad}>
+                          {row.ad || '—'}
                         </td>
                         <td style={{ padding: '7px 10px 7px 0', color: '#fff', textAlign: 'right', fontWeight: 700 }}>{row.total}</td>
                         <td style={{ padding: '7px 10px 7px 0', color: '#4ade80', textAlign: 'right', fontWeight: 700 }}>{row.paid}</td>

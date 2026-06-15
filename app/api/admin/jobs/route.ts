@@ -35,15 +35,17 @@ export async function GET(req: NextRequest) {
   const conversion = total > 0 ? (paid / total) * 100 : 0
   const dlRate     = paid > 0 ? (downloaded / paid) * 100 : 0
 
-  // UTM breakdown por source/medium
-  const utmMap: Record<string, { source: string; medium: string; campaign: string; total: number; paid: number; revenue: number }> = {}
+  // UTM breakdown por source/medium/campaign/adset/ad
+  const utmMap: Record<string, { source: string; medium: string; campaign: string; adset: string; ad: string; total: number; paid: number; revenue: number }> = {}
   for (const o of list) {
     const params = o.utm_params as Record<string, string> | null
     const source   = params?.utm_source   ?? 'orgânico'
     const medium   = params?.utm_medium   ?? ''
     const campaign = params?.utm_campaign ?? ''
-    const key = `${source}|${medium}|${campaign}`
-    if (!utmMap[key]) utmMap[key] = { source, medium, campaign, total: 0, paid: 0, revenue: 0 }
+    const adset    = params?.utm_content  ?? ''
+    const ad       = params?.utm_term     ?? ''
+    const key = `${source}|${medium}|${campaign}|${adset}|${ad}`
+    if (!utmMap[key]) utmMap[key] = { source, medium, campaign, adset, ad, total: 0, paid: 0, revenue: 0 }
     utmMap[key].total++
     if (o.paid) { utmMap[key].paid++; utmMap[key].revenue += PRICE_PER_SALE_BRL }
   }
