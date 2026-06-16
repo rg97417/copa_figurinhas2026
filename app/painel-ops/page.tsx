@@ -82,6 +82,8 @@ export default function AdminPage() {
   const [previewOrder, setPreviewOrder] = useState<Order | null>(null)
   const [resending, setResending] = useState<string | null>(null)
   const [resendMsg, setResendMsg] = useState<Record<string, string>>({})
+  const [following, setFollowing] = useState<string | null>(null)
+  const [followMsg, setFollowMsg] = useState<Record<string, string>>({})
   const [filter, setFilter]   = useState<'all' | 'paid' | 'unpaid'>('all')
 
   const load = useCallback(async (sec = secret) => {
@@ -95,6 +97,19 @@ export default function AdminPage() {
       setUtmStats(data.utmStats ?? [])
       setAuthed(true)
     } finally { setLoading(false) }
+  }, [secret])
+
+  const sendFollowup = useCallback(async (order: Order) => {
+    setFollowing(order.id); setFollowMsg(p => ({ ...p, [order.id]: '' }))
+    try {
+      const res = await fetch('/api/admin/followup', {
+        method: 'POST',
+        headers: { 'x-admin-secret': secret, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order_id: order.id }),
+      })
+      const data = await res.json()
+      setFollowMsg(p => ({ ...p, [order.id]: res.ok ? '✅ Enviado!' : `⚠ ${data.error ?? 'Erro'}` }))
+    } finally { setFollowing(null) }
   }, [secret])
 
   const resendEmail = useCallback(async (order: Order) => {
@@ -363,7 +378,7 @@ export default function AdminPage() {
                     {downloading === order.id ? '...' : '4K ↓'}
                   </button>
                 )}
-                {/* Reenviar email */}
+                {/* Reenviar email (pagos) */}
                 {order.paid && order.email && (
                   <button onClick={() => resendEmail(order)} disabled={resending === order.id}
                     title={`Reenviar email para ${order.email}`}
@@ -371,6 +386,16 @@ export default function AdminPage() {
                       background: resendMsg[order.id]?.startsWith('✅') ? 'rgba(74,222,128,0.15)' : 'rgba(96,165,250,0.15)',
                       color: resendMsg[order.id]?.startsWith('✅') ? '#4ade80' : '#60a5fa' }}>
                     {resending === order.id ? '...' : resendMsg[order.id] || '📧'}
+                  </button>
+                )}
+                {/* Follow-up (pendentes que geraram) */}
+                {!order.paid && order.job_id && order.email && (
+                  <button onClick={() => sendFollowup(order)} disabled={following === order.id}
+                    title={`Enviar follow-up para ${order.email}`}
+                    style={{ padding: '6px 12px', borderRadius: 10, border: 'none', fontSize: 12, fontWeight: 700, cursor: following === order.id ? 'wait' : 'pointer',
+                      background: followMsg[order.id]?.startsWith('✅') ? 'rgba(74,222,128,0.15)' : 'rgba(251,191,36,0.15)',
+                      color: followMsg[order.id]?.startsWith('✅') ? '#4ade80' : '#fbbf24' }}>
+                    {following === order.id ? '...' : followMsg[order.id] || '📩'}
                   </button>
                 )}
               </div>
