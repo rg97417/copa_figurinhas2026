@@ -79,6 +79,7 @@ export default function AdminPage() {
   const [error, setError]     = useState('')
   const [downloading, setDownloading] = useState<string | null>(null)
   const [dlError, setDlError] = useState<Record<string, string>>({})
+  const [previewOrder, setPreviewOrder] = useState<Order | null>(null)
   const [resending, setResending] = useState<string | null>(null)
   const [resendMsg, setResendMsg] = useState<Record<string, string>>({})
   const [filter, setFilter]   = useState<'all' | 'paid' | 'unpaid'>('all')
@@ -278,13 +279,14 @@ export default function AdminPage() {
             <div key={order.id} style={{ ...S.card, display: 'flex', alignItems: 'center', gap: 12,
               borderLeft: `3px solid ${order.paid ? '#4ade80' : '#fb923c'}` }}>
 
-              {/* Thumbnail — mostra para todos que geraram */}
+              {/* Thumbnail — clicável para ampliar */}
               {order.job_id && order.download_token ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={`/api/og/${order.download_token}`}
                   alt={order.nome ?? ''}
-                  style={{ width: 48, height: 64, objectFit: 'cover', borderRadius: 6, flexShrink: 0, background: 'rgba(255,255,255,0.05)' }}
+                  onClick={() => setPreviewOrder(order)}
+                  style={{ width: 48, height: 64, objectFit: 'cover', borderRadius: 6, flexShrink: 0, background: 'rgba(255,255,255,0.05)', cursor: 'zoom-in' }}
                 />
               ) : (
                 <div style={{ width: 48, height: 64, borderRadius: 6, flexShrink: 0, background: 'rgba(255,255,255,0.04)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>
@@ -380,6 +382,37 @@ export default function AdminPage() {
           Custo IA estimado: OpenAI gpt-image-2 (~R$0,23) + Replicate rembg (~R$0,02) = R$0,25/geração
         </p>
       </div>
+
+      {/* ── Modal preview ── */}
+      {previewOrder && (
+        <div
+          onClick={() => setPreviewOrder(null)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 999,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}
+        >
+          <div onClick={e => e.stopPropagation()} style={{ position: 'relative', maxWidth: 340, width: '100%' }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={`/api/og/${previewOrder.download_token}`}
+              alt={previewOrder.nome ?? ''}
+              style={{ width: '100%', borderRadius: 16, boxShadow: '0 24px 80px rgba(0,0,0,0.6)', display: 'block' }}
+            />
+            <div style={{ marginTop: 12, textAlign: 'center' }}>
+              <span style={{ fontFamily: 'var(--font-bebas)', fontSize: 22, color: '#FFD500', letterSpacing: 1 }}>
+                {previewOrder.nome ?? '—'}
+              </span>
+              <span style={{ marginLeft: 10, fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 99,
+                background: previewOrder.paid ? 'rgba(74,222,128,0.2)' : 'rgba(251,146,60,0.2)',
+                color: previewOrder.paid ? '#4ade80' : '#fb923c' }}>
+                {previewOrder.paid ? 'PAGO' : 'PENDENTE'}
+              </span>
+              <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 6 }}>
+                {previewOrder.email} · clique fora para fechar
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   )
 }
