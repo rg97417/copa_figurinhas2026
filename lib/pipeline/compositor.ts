@@ -172,14 +172,22 @@ export async function compositeSticker(personPng: Buffer, data: UserData): Promi
   ctx.fillText(clubeUpper, p2cx, clubY)
 
   if (data.watermark) {
+    // Camada escura semi-transparente para degradar a imagem
     ctx.save()
-    ctx.globalAlpha = 0.22
+    ctx.globalAlpha = 0.38
+    ctx.fillStyle = '#000000'
+    ctx.fillRect(0, 0, W, H)
+    ctx.restore()
+
+    // Texto diagonal denso e legível
+    ctx.save()
+    ctx.globalAlpha = 0.72
     ctx.fillStyle   = '#ffffff'
-    ctx.font        = 'bold 52px "Barlow"'
+    ctx.font        = 'bold 58px sans-serif'
     ctx.textAlign   = 'center'
     ctx.translate(W / 2, H / 2)
     ctx.rotate(-Math.PI / 5)
-    for (let y = -600; y < 600; y += 130) {
+    for (let y = -700; y < 700; y += 110) {
       ctx.fillText('PRÉVIA  •  PRÉVIA  •  PRÉVIA', 0, y)
     }
     ctx.restore()
