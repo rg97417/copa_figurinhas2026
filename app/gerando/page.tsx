@@ -65,10 +65,14 @@ export default function GerandoPage() {
   const store  = useFigurinhaStore()
   const called = useRef(-1)
 
-  const [stage, setStage]     = useState<Stage>('face_start')
+  const [mounted, setMounted]   = useState(false)
+  const [stage, setStage]       = useState<Stage>('face_start')
   const [progress, setProgress] = useState(5)
-  const [error, setError]     = useState<string | null>(null)
-  const [elapsed, setElapsed] = useState(0)
+  const [error, setError]       = useState<string | null>(null)
+  const [elapsed, setElapsed]   = useState(0)
+
+  // Aguarda hidratação do Zustand persist antes de qualquer checagem
+  useEffect(() => { setMounted(true) }, [])
 
   // Ticker de tempo decorrido
   useEffect(() => {
@@ -91,6 +95,7 @@ export default function GerandoPage() {
   }, [stage, progress])
 
   useEffect(() => {
+    if (!mounted) return
     if (!store.name || !store.photo) { router.replace('/criar'); return }
     if (called.current === store.generationId) return
     called.current = store.generationId
@@ -190,7 +195,7 @@ export default function GerandoPage() {
 
     run()
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [store.generationId])
+  }, [store.generationId, mounted])
 
   if (error) {
     return (
