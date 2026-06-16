@@ -62,12 +62,33 @@ function Confetti() {
   )
 }
 
+function ConfirmNovaModal({ onConfirm, onCancel }: { onConfirm: () => void; onCancel: () => void }) {
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}>
+      <div style={{ background: '#fff', borderRadius: 20, padding: '28px 24px', maxWidth: 320, width: '100%', textAlign: 'center' }}>
+        <div style={{ fontSize: 40, marginBottom: 12 }}>🔄</div>
+        <p style={{ fontFamily: 'var(--font-bebas)', fontSize: 22, color: '#0D1B4B', letterSpacing: 1, marginBottom: 8 }}>GERAR NOVA FIGURINHA?</p>
+        <p style={{ fontFamily: 'var(--font-barlow)', fontSize: 13, color: 'rgba(13,27,75,0.6)', lineHeight: 1.5, marginBottom: 20 }}>
+          A prévia atual será substituída. Se ainda não comprou, pode perder o acesso a essa figurinha.
+        </p>
+        <button onClick={onConfirm} style={{ width: '100%', padding: '14px', borderRadius: 12, border: 'none', background: '#009B3A', color: '#fff', fontFamily: 'var(--font-barlow)', fontSize: 15, fontWeight: 800, cursor: 'pointer', marginBottom: 10 }}>
+          Sim, gerar nova
+        </button>
+        <button onClick={onCancel} style={{ width: '100%', padding: '12px', borderRadius: 12, border: '1.5px solid rgba(13,27,75,0.15)', background: 'transparent', color: 'rgba(13,27,75,0.5)', fontFamily: 'var(--font-barlow)', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
+          Cancelar
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export default function SuaFigurinhaPage() {
   const router = useRouter()
   const store = useFigurinhaStore()
   const [showConfetti, setShowConfetti] = useState(false)
   const [gooollVisible, setGooollVisible] = useState(false)
   const [cardVisible, setCardVisible] = useState(false)
+  const [showNovaModal, setShowNovaModal] = useState(false)
 
   const birthDate = formatBirthDate(store.birthDay, store.birthMonth, store.birthYear)
   const playerNumber = getPlayerNumber(store.name)
@@ -118,10 +139,21 @@ export default function SuaFigurinhaPage() {
     window.location.href = url
   }, [store.jobId])
 
+  const handleNovaFigurinha = useCallback(() => {
+    store.reset()
+    router.push('/criar')
+  }, [store, router])
+
   if (!store.name) return null
 
   return (
     <main className="min-h-screen bg-hero bg-hero-mesh">
+      {showNovaModal && (
+        <ConfirmNovaModal
+          onConfirm={handleNovaFigurinha}
+          onCancel={() => setShowNovaModal(false)}
+        />
+      )}
       {/* Confetti */}
       <AnimatePresence>{showConfetti && <Confetti />}</AnimatePresence>
 
@@ -440,7 +472,7 @@ export default function SuaFigurinhaPage() {
               </button>
 
               <p
-                className="text-center"
+                className="text-center mb-6"
                 style={{
                   fontFamily: 'var(--font-barlow)',
                   fontSize: 12,
@@ -450,6 +482,26 @@ export default function SuaFigurinhaPage() {
               >
                 🔒 Checkout seguro · Acesso liberado na hora · Garantia de satisfação
               </p>
+
+              {/* Gerar nova figurinha */}
+              <div className="text-center mb-4">
+                <button
+                  onClick={() => setShowNovaModal(true)}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    fontFamily: 'var(--font-barlow)',
+                    fontSize: 13,
+                    fontWeight: 600,
+                    color: 'rgba(13,27,75,0.35)',
+                    cursor: 'pointer',
+                    textDecoration: 'underline',
+                    padding: '8px 16px',
+                  }}
+                >
+                  🔄 Gerar figurinha diferente
+                </button>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>

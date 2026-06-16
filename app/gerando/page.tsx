@@ -180,7 +180,12 @@ export default function GerandoPage() {
 
         const jobId   = finishRes.headers.get('X-Job-Id') ?? ''
         const imgBlob = await finishRes.blob()
-        const url     = URL.createObjectURL(imgBlob)
+        // Converte para base64 data URL (sobrevive a refresh — blob:// não persiste)
+        const url = await new Promise<string>((resolve) => {
+          const reader = new FileReader()
+          reader.onload = () => resolve(reader.result as string)
+          reader.readAsDataURL(imgBlob)
+        })
         store.setStickerUrl(url)
         store.setJobId(jobId)
 
