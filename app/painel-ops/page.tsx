@@ -278,8 +278,8 @@ export default function AdminPage() {
             <div key={order.id} style={{ ...S.card, display: 'flex', alignItems: 'center', gap: 12,
               borderLeft: `3px solid ${order.paid ? '#4ade80' : '#fb923c'}` }}>
 
-              {/* Thumbnail */}
-              {order.paid && order.download_token ? (
+              {/* Thumbnail — mostra para todos que geraram */}
+              {order.job_id && order.download_token ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={`/api/og/${order.download_token}`}
@@ -304,7 +304,15 @@ export default function AdminPage() {
                     color: order.paid ? '#4ade80' : '#fb923c' }}>
                     {order.paid ? 'PAGO' : 'PENDENTE'}
                   </span>
-                  {/* Downloaded badge */}
+                  {/* Badge geração (pendentes) */}
+                  {!order.paid && (
+                    <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 99,
+                      background: order.job_id ? 'rgba(251,191,36,0.15)' : 'rgba(255,255,255,0.06)',
+                      color: order.job_id ? '#fbbf24' : 'rgba(255,255,255,0.25)' }}>
+                      {order.job_id ? '🎨 GEROU' : '❌ SEM GERAÇÃO'}
+                    </span>
+                  )}
+                  {/* Downloaded badge (pagos) */}
                   {order.paid && (
                     <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 99,
                       background: order.sticker_path ? 'rgba(96,165,250,0.15)' : 'rgba(255,255,255,0.06)',

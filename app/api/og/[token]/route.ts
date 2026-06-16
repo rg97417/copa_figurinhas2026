@@ -29,7 +29,7 @@ export async function GET(
     .single()
 
   const order = data as Pick<OrderRow, 'paid' | 'nome' | 'dados_figurinha' | 'storage_path' | 'sticker_path'> | null
-  if (error || !order || !order.paid) {
+  if (error || !order) {
     return NextResponse.json({ error: 'Não encontrado' }, { status: 404 })
   }
 
